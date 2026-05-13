@@ -1,8 +1,8 @@
-# 🌧️ CompText Town
-
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ProfRandom92/CompText-Town/main/.github/assets/comptext-town-banner.png" alt="CompText Town Banner" width="100%" />
+  <img src=".github/assets/file_00000000fb1871f494906cd8b1ae4519.png" width="100%" />
 </p>
+
+<h1 align="center">🌧️ CompText Town</h1>
 
 <p align="center">
   <strong>A village that remembers.</strong><br/>
@@ -21,7 +21,7 @@
 
 # ✨ What is CompText Town?
 
-**CompText Town** is an atmospheric browser-based pixel-art experience inspired by:
+**CompText Town** is a cozy browser-based atmospheric pixel-art experience inspired by:
 
 - Pokémon
 - Stardew Valley
