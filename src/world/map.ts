@@ -19,21 +19,23 @@ export const TILES: Record<TileKey, TileDefinition> = {
 };
 
 const rows = [
-  'wwwwwwwwwwwwwwwwwwwwwwww',
-  'wggggggggggggggggggggggw',
-  'wggmmmggggggggggggmmmggw',
-  'wggmfffffgggggggggmkkmggw',
-  'wggmfffffgggggggggmkkmggw',
-  'wggmfffffmmmmmmmmmmmmmmggw',
-  'wggmfffffggggggggggmmmggw',
-  'wggmrrrrrgggggggggggggggw',
-  'wggggmmmggggggggggggggggw',
-  'wgggggggggggggggggggggggw',
-  'wgggsssgggggggggggsssnggw',
-  'wgggsssgggggcggggggsssngw',
-  'wgggsssgggggggggggggggggw',
-  'wgggggggggggggggggggggggw',
-  'wwwwwwwwwwwwwwwwwwwwwwww',
+  'wwwwwwwwwwwwwwwwwwwwwwwwwwww',
+  'wggggggggggggggggggggggggggw',
+  'wggmmmmgggggggggggggggmmmggw',
+  'wggmfffffgggggggggggmkkkmggw',
+  'wggmfffffgggggggggggmkkkmggw',
+  'wggmfffffmmmmmmmmmmmmmmmmggw',
+  'wggmfffffggggggggggggmmmmggw',
+  'wggmrrrrrggggggggggggggggggw',
+  'wggggmmmgggggggggggggggggggw',
+  'wggggggggggggggggggggggggggw',
+  'wgggsssggggggggggggggsssnggw',
+  'wgggsssgggggcgggggggggsssggw',
+  'wggggggggggggggggggggggggggw',
+  'wggggggggggggggggggggggggggw',
+  'wggggggggggggggggggggggggggw',
+  'wggggggggggggggggggggggggggw',
+  'wwwwwwwwwwwwwwwwwwwwwwwwwwww',
 ];
 
 const legend: Record<string, TileKey> = {
@@ -61,7 +63,7 @@ export function createVillageMap() {
     [...row].map((cell, x) => {
       if (cell === 'c') markers.push({ id: 'clay-bank', x, y, kind: 'clay' });
       if (cell === 'n') markers.push({ id: 'mira', x, y, kind: 'npc' });
-      if (cell === 'k' && x === 18 && y === 3) markers.push({ id: 'kiln', x, y, kind: 'kiln' });
+      if (cell === 'k' && x === 22 && y === 3) markers.push({ id: 'kiln', x, y, kind: 'kiln' });
       return legend[cell] ?? 'grass';
     }),
   );

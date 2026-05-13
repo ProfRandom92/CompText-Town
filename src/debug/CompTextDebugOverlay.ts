@@ -43,16 +43,17 @@ export class CompTextDebugOverlay {
   render() {
     if (!this.enabled) return;
     const compression = this.memory?.compression;
-    const events = this.timeline.list().map((event) => `#${event.id} ${event.actor}: ${event.summary.slice(0, 32)}…`).join('\n');
+    const events = this.timeline.list().map((event) => `#${event.id} ${event.actor}: ${event.summary.slice(0, 30)}…`).join('\n');
+    const compressedMemory = compression?.compressedText ?? 'memory:quiet-rain';
     this.text.setText([
-      'CompTextv7 lantern pane',
+      'hidden CompTextv7 pane',
       `NPC: ${this.memory?.npcName ?? 'listening...'}`,
-      `tokens: ${compression ? `${compression.rawTokens}→${compression.compressedTokens}` : '—'}`,
-      `reduction: ${compression?.tokenReduction ?? 0}%`,
-      `retention: ${compression?.retentionScore ?? 0}%`,
-      `drift: ${compression?.driftScore ?? 0}%`,
-      `relation: ${this.memory?.relationship ?? 0}`,
-      `compressed: ${compression?.compressedText ?? 'memory:quiet-rain'}`,
+      `token count: ${compression ? `${compression.rawTokens}→${compression.compressedTokens}` : '—'}`,
+      `compressed memory: ${compressedMemory.length} chars`,
+      `retention score: ${compression?.retentionScore ?? 0}%`,
+      `semantic reduction: ${compression?.tokenReduction ?? 0}%`,
+      `relationship: ${this.memory?.relationship ?? 0}`,
+      `memory: ${compressedMemory}`,
       'replay:',
       events || 'no events yet',
     ].join('\n'));
