@@ -40,6 +40,9 @@ export class VillageScene extends Phaser.Scene {
   private windowGlows: Phaser.GameObjects.Rectangle[] = [];
   private memoryEchoes: Phaser.GameObjects.GameObject[] = [];
   private lanternGlows: Phaser.GameObjects.Arc[] = [];
+  private lanternReflectionStrips: Phaser.GameObjects.Rectangle[] = [];
+  private roofDrips: Phaser.GameObjects.Rectangle[] = [];
+  private hangingCharms: Phaser.GameObjects.Text[] = [];
   private readonly inventory = new InventorySystem();
   private readonly interactions = new InteractionSystem();
   private readonly timeline = new ReplayTimeline();
@@ -122,6 +125,12 @@ export class VillageScene extends Phaser.Scene {
         if (tileKey === 'grass' && (x + y * 2) % 9 === 0) {
           this.add.rectangle(px - 4, py + 4, 2, 3, 0x6f8e77, 0.36).setDepth(1);
         }
+        if (tileKey === 'grass' && (x * 5 + y * 3) % 17 === 0) {
+          this.add.rectangle(px + 4, py - 3, 3, 2, 0x2b493f, 0.28).setDepth(1);
+        }
+        if (tileKey === 'floor' && (x + y) % 3 === 0) {
+          this.add.rectangle(px, py + 5, 10, 1, 0xd59b6a, 0.22).setDepth(6);
+        }
         if (tile.collides) {
           const blocker = this.add.zone(px, py, TILE_SIZE, TILE_SIZE);
           collisionLayer.add(blocker);
@@ -134,6 +143,8 @@ export class VillageScene extends Phaser.Scene {
   private drawWorkshopDetails() {
     // Exterior shell and warm interior floor.
     this.add.rectangle(79, 68, 92, 50, 0x6f303d).setDepth(4);
+    this.add.rectangle(79, 50, 104, 10, 0x4c2f2f).setDepth(8);
+    this.add.rectangle(79, 57, 98, 5, 0x8b4c4f).setDepth(9);
     this.add.rectangle(79, 86, 84, 54, 0xa97857).setDepth(5);
     this.add.rectangle(79, 113, 18, 10, 0x211922).setDepth(8);
     this.add.rectangle(79, 106, 20, 6, 0xd59b6a).setDepth(7);
@@ -141,7 +152,9 @@ export class VillageScene extends Phaser.Scene {
     this.windowGlows.push(this.add.rectangle(46, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9));
     this.add.rectangle(111, 78, 14, 14, 0x2a2534).setDepth(8);
     this.windowGlows.push(this.add.rectangle(111, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9));
-    this.add.text(36, 41, 'Mosscup Pottery', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(10);
+    this.add.rectangle(75, 39, 66, 9, 0x211922, 0.78).setDepth(10);
+    this.add.text(36, 36, 'Mosscup Pottery', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(11);
+    this.add.text(111, 53, '◌', { fontFamily: 'monospace', fontSize: '9px', color: '#f5b56b' }).setDepth(12).setAlpha(0.72);
 
     // Interior craft stations.
     this.potteryWheel = this.add.sprite(61, 94, 'pottery-wheel').setDepth(12);
@@ -156,11 +169,23 @@ export class VillageScene extends Phaser.Scene {
     this.add.rectangle(35, 82, 6, 2, 0xb9cfa8, 0.75).setDepth(13);
     this.add.rectangle(122, 96, 18, 5, 0x4c2f2f).setDepth(12);
     this.add.rectangle(122, 91, 4, 6, 0xd59b6a).setDepth(13);
+    this.add.rectangle(50, 101, 12, 2, 0xf7e7c1, 0.26).setDepth(13);
+    this.add.rectangle(109, 100, 10, 2, 0xf7e7c1, 0.22).setDepth(13);
     this.add.circle(79, 92, 44, 0xf5b56b, 0.06).setDepth(10);
+
+    [36, 52, 70, 88, 106, 122].forEach((x, index) => {
+      this.roofDrips.push(this.add.rectangle(x, 57 + (index % 2), 1, 4, 0x8aa0ba, 0.38).setDepth(12));
+    });
+    [52, 107].forEach((x, index) => {
+      this.hangingCharms.push(
+        this.add.text(x, 57, index === 0 ? '✧' : '◇', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(13).setAlpha(0.5),
+      );
+    });
 
     // Exterior kiln shed.
     this.add.rectangle(358, 67, 42, 34, 0x4a3338).setDepth(6);
     this.add.rectangle(358, 50, 48, 12, 0x6f303d).setDepth(7);
+    this.add.rectangle(358, 56, 56, 4, 0x2a2534).setDepth(8);
     this.add.sprite(358, 70, 'kiln').setDepth(12);
     this.kilnGlow = this.add.circle(358, 70, 28, 0xff7f4f, 0.18).setDepth(72);
     this.kilnFire = this.add.circle(358, 73, 6, 0xffb36b, 0.6).setDepth(13);
@@ -171,7 +196,9 @@ export class VillageScene extends Phaser.Scene {
     this.add.sprite(197, 168, 'clay-node').setDepth(12);
     this.add.text(183, 154, 'river clay', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(8);
     this.add.rectangle(404, 218, 32, 18, 0x4c3a30).setDepth(6);
+    this.add.rectangle(404, 203, 38, 8, 0x6f303d).setDepth(8);
     this.add.sprite(396, 210, 'pot').setDepth(12);
+    this.add.sprite(411, 211, 'fired-cup').setDepth(12).setTint(0xf5d6a1);
     this.add.text(382, 196, 'rain stall', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(8);
   }
 
@@ -184,15 +211,56 @@ export class VillageScene extends Phaser.Scene {
     lanterns.forEach(({ x, y }) => {
       this.add.sprite(x, y, 'lantern-post').setDepth(15);
       this.lanternGlows.push(this.add.circle(x, y - 8, 25, 0xf5b56b, 0.12).setDepth(72));
+      this.lanternReflectionStrips.push(this.add.rectangle(x + 2, y + 13, 22, 2, 0xf5b56b, 0.1).setDepth(4));
     });
+
+    this.drawLanternPath();
+    this.drawHandmadeVillageCorners();
 
     const puddles = [
       { x: 132, y: 158 },
       { x: 222, y: 126 },
       { x: 284, y: 190 },
       { x: 52, y: 138 },
+      { x: 370, y: 103 },
     ].map(({ x, y }) => this.add.sprite(x, y, 'puddle').setDepth(3));
     return puddles;
+  }
+
+  private drawLanternPath() {
+    [
+      { x: 116, y: 126, w: 18 },
+      { x: 145, y: 132, w: 22 },
+      { x: 176, y: 139, w: 18 },
+      { x: 224, y: 133, w: 24 },
+      { x: 270, y: 116, w: 20 },
+      { x: 317, y: 93, w: 18 },
+      { x: 361, y: 101, w: 24 },
+    ].forEach(({ x, y, w }, index) => {
+      this.add.ellipse(x, y, w, 7, index % 2 === 0 ? 0x6a6472 : 0x4e4250, 0.62).setDepth(2);
+      this.add.ellipse(x - 1, y - 1, Math.max(6, w - 8), 2, 0xf7e7c1, 0.08).setDepth(3);
+    });
+  }
+
+  private drawHandmadeVillageCorners() {
+    [
+      { x: 24, y: 70, color: 0x6f8e77 },
+      { x: 188, y: 58, color: 0xb9cfa8 },
+      { x: 318, y: 154, color: 0x6f8e77 },
+      { x: 432, y: 170, color: 0xb9cfa8 },
+    ].forEach(({ x, y, color }) => {
+      this.add.rectangle(x, y, 9, 5, 0x4c2f2f).setDepth(6);
+      this.add.rectangle(x, y - 4, 7, 3, color, 0.8).setDepth(7);
+      this.add.rectangle(x + 5, y + 1, 4, 3, 0xb97752).setDepth(7);
+    });
+
+    [
+      { x: 247, y: 72, text: 'small kiln prayers' },
+      { x: 335, y: 190, text: 'cups drying here' },
+    ].forEach(({ x, y, text }) => {
+      this.add.rectangle(x, y, 54, 10, 0x211922, 0.58).setDepth(8);
+      this.add.text(x - 25, y - 4, text, { fontFamily: 'monospace', fontSize: '6px', color: '#b9cfa8' }).setDepth(9);
+    });
   }
 
   private addAtmosphere(width: number, height: number, puddles: Phaser.GameObjects.Sprite[]) {
@@ -452,6 +520,19 @@ export class VillageScene extends Phaser.Scene {
     const nightBoost = this.atmosphereState?.phase === 'night' ? 0.22 : 0;
     this.windowGlows.forEach((glow, index) => glow.setAlpha(0.48 + nightBoost + 0.08 * Math.sin(this.time.now / 320 + index)));
     this.lanternGlows.forEach((glow, index) => glow.setAlpha(lanternBase + 0.035 * Math.sin(this.time.now / 260 + index)));
+    this.lanternReflectionStrips.forEach((strip, index) => {
+      strip.setAlpha(0.06 + lanternBase * 0.35 + 0.035 * Math.sin(this.time.now / 310 + index));
+      strip.setScale(1 + Math.sin(this.time.now / 460 + index) * 0.08, 1);
+    });
+    this.roofDrips.forEach((drip, index) => {
+      const fall = (this.time.now / (420 + index * 35) + index) % 1;
+      drip.y = 57 + fall * 11;
+      drip.setAlpha((1 - fall) * (0.22 + this.atmosphereState.rainIntensity * 0.28));
+    });
+    this.hangingCharms.forEach((charm, index) => {
+      charm.x += Math.sin(this.time.now / 700 + index) * 0.01;
+      charm.setAlpha(0.42 + lanternBase * 0.6 + Math.sin(this.time.now / 500 + index) * 0.08);
+    });
   }
 
   private updateAtmosphere() {
