@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
 import { CompTextDebugOverlay } from '../debug/CompTextDebugOverlay';
 import { ReplayTimeline } from '../comptext/replayTimeline';
-import { Npc } from '../npc/Npc';
+import { Npc, VILLAGER_PROFILES } from '../npc/Npc';
 import { AmbientSoundHooks } from '../systems/AmbientSoundHooks';
 import { AtmosphereSystem } from '../systems/AtmosphereSystem';
 import { InteractionSystem } from '../systems/InteractionSystem';
 import { INVENTORY_ITEMS, InventorySystem, ItemId } from '../systems/InventorySystem';
 import { RainSystem } from '../systems/RainSystem';
 import { TimeWeatherSystem, VillageAtmosphereState } from '../systems/TimeWeatherSystem';
+import { VillageSaveState, VillageSaveSystem } from '../systems/VillageSaveSystem';
 import { DialogueBox } from '../ui/DialogueBox';
 import { InventoryPanel } from '../ui/InventoryPanel';
 import { createVillageMap, TILE_SIZE, TILES } from '../world/map';
@@ -18,6 +19,7 @@ export class VillageScene extends Phaser.Scene {
   private actionKey!: Phaser.Input.Keyboard.Key;
   private dropKey!: Phaser.Input.Keyboard.Key;
   private debugKey!: Phaser.Input.Keyboard.Key;
+  private journalKey!: Phaser.Input.Keyboard.Key;
   private player!: Phaser.Physics.Arcade.Sprite;
   private prompt!: Phaser.GameObjects.Text;
   private hud!: Phaser.GameObjects.Text;
@@ -30,14 +32,27 @@ export class VillageScene extends Phaser.Scene {
   private soundHooks = new AmbientSoundHooks();
   private atmosphereState!: VillageAtmosphereState;
   private soundHud!: Phaser.GameObjects.Text;
+  private journalText!: Phaser.GameObjects.Text;
   private kilnGlow!: Phaser.GameObjects.Arc;
   private kilnFire!: Phaser.GameObjects.Arc;
   private lanternGlows: Phaser.GameObjects.Arc[] = [];
   private readonly inventory = new InventorySystem();
   private readonly interactions = new InteractionSystem();
   private readonly timeline = new ReplayTimeline();
+  private readonly saveSystem = new VillageSaveSystem();
   private readonly droppedSprites = new Map<string, Phaser.GameObjects.Sprite>();
   private nextDroppedItemId = 1;
+  private loadedSave?: VillageSaveState;
+  private villagers: Npc[] = [];
+  private displayedCeramics: string[] = [];
+  private journalEchoes: string[] = [];
+  private shelfSprites: Phaser.GameObjects.Sprite[] = [];
+  private readonly shelfSpots = [
+    { x: 88, y: 78 },
+    { x: 100, y: 78 },
+    { x: 88, y: 91 },
+    { x: 100, y: 91 },
+  ];
   private mira!: Npc;
 
   constructor() {
@@ -45,6 +60,10 @@ export class VillageScene extends Phaser.Scene {
   }
 
   create() {
+    this.loadedSave = this.saveSystem.load();
+    this.inventory.restore(this.loadedSave?.inventory);
+    this.displayedCeramics = [...(this.loadedSave?.displayedCeramics ?? [])];
+    this.journalEchoes = [...(this.loadedSave?.journalEchoes ?? [])];
     const map = createVillageMap();
     this.physics.world.setBounds(0, 0, map.width * TILE_SIZE, map.height * TILE_SIZE);
     const collisionLayer = this.drawMap(map.tiles);
@@ -62,9 +81,11 @@ export class VillageScene extends Phaser.Scene {
     this.dialogue = new DialogueBox(this);
     this.debugOverlay = new CompTextDebugOverlay(this, this.timeline);
     this.debugOverlay.updateMemory(this.mira.memory.snapshot());
+    this.updateDisplayShelves();
     this.createControls();
     this.createHud();
-    this.dialogue.showHint('Rain softens Mosscup Pottery. Gather clay, shape a cup, fire it, then bring it to Mira.', 3600);
+    this.dialogue.showHint('Rain softens Mosscup Pottery. Villagers remember gifts, weather, and the cups you choose to display.', 3600);
+    this.saveWorld();
   }
 
   update() {
@@ -78,6 +99,7 @@ export class VillageScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.actionKey)) this.interact();
     if (Phaser.Input.Keyboard.JustDown(this.dropKey)) this.dropHeldItem();
     if (Phaser.Input.Keyboard.JustDown(this.debugKey)) this.debugOverlay.toggle();
+    if (Phaser.Input.Keyboard.JustDown(this.journalKey)) this.toggleJournal();
   }
 
   private drawMap(tiles: ReturnType<typeof createVillageMap>['tiles']) {
@@ -120,6 +142,8 @@ export class VillageScene extends Phaser.Scene {
     // Interior craft stations.
     this.add.sprite(61, 94, 'pottery-wheel').setDepth(12);
     this.add.sprite(96, 94, 'shelf-pots').setDepth(12);
+    this.add.rectangle(94, 72, 32, 4, 0x4c2f2f).setDepth(12);
+    this.add.rectangle(94, 85, 32, 4, 0x4c2f2f).setDepth(12);
     this.add.sprite(76, 86, 'rolled-rug').setDepth(11);
 
     // Exterior kiln shed.
@@ -176,8 +200,7 @@ export class VillageScene extends Phaser.Scene {
         this.interactions.register({ id: marker.id, label: 'Gather river clay', x, y, radius: 24, onInteract: () => this.collectClay() });
       }
       if (marker.kind === 'npc') {
-        this.mira = new Npc(this, x, y, 'Mira', this.timeline);
-        this.interactions.register({ id: marker.id, label: 'Talk to Mira', x, y, radius: 26, onInteract: () => this.talkToMira() });
+        this.createVillagers(x, y);
       }
       if (marker.kind === 'kiln') {
         this.interactions.register({ id: marker.id, label: 'Fire kiln', x, y, radius: 30, onInteract: () => this.fireKiln() });
@@ -185,7 +208,87 @@ export class VillageScene extends Phaser.Scene {
     });
 
     this.interactions.register({ id: 'wheel', label: 'Shape a cup', x: 61, y: 94, radius: 28, onInteract: () => this.craftPottery() });
+    this.interactions.register({ id: 'display-shelf', label: 'Place cup on shelf', x: 96, y: 94, radius: 26, onInteract: () => this.placeCupOnShelf() });
     this.interactions.register({ id: 'stall', label: 'Sell spare cup', x: 396, y: 210, radius: 30, onInteract: () => this.sellPottery() });
+  }
+
+
+  private createVillagers(markerX: number, markerY: number) {
+    this.villagers = VILLAGER_PROFILES.map((profile, index) => {
+      const x = index === 0 ? markerX : profile.anchors.home.x;
+      const y = index === 0 ? markerY : profile.anchors.home.y;
+      const villager = new Npc(this, x, y, profile, this.timeline, this.loadedSave?.relationships[profile.id]);
+      this.interactions.register({
+        id: profile.id,
+        label: `Talk to ${profile.displayName}`,
+        x,
+        y,
+        radius: 26,
+        onInteract: () => this.talkToVillager(villager),
+      });
+      if (profile.id === 'mira') this.mira = villager;
+      return villager;
+    });
+  }
+
+  private placeCupOnShelf() {
+    if (this.displayedCeramics.length >= this.shelfSpots.length) {
+      this.dialogue.showHint('Every shelf is already holding a little piece of your weathered history.');
+      return;
+    }
+    if (!this.inventory.remove('firedCup')) {
+      this.dialogue.showHint('The shelf waits for a fired cup with kiln warmth still inside it.');
+      return;
+    }
+    const label = `${this.timeWeather.clockLabel(this.atmosphereState)} cup`;
+    this.displayedCeramics.push(label);
+    this.timeline.add('Workshop shelf', `Player displayed a fired cup as ${label}.`, 'workshop:display|ceramic|memory');
+    this.rememberJournal(`A displayed cup caught the ${this.atmosphereState.phase} rain-light on the workshop shelf.`);
+    this.updateDisplayShelves();
+    this.saveWorld();
+    this.dialogue.showHint('You set the cup on the shelf. The workshop feels a little more yours.');
+    this.refreshHud();
+  }
+
+  private updateDisplayShelves() {
+    this.shelfSprites.forEach((sprite) => sprite.destroy());
+    this.shelfSprites = this.displayedCeramics.slice(0, this.shelfSpots.length).map((_, index) => {
+      const spot = this.shelfSpots[index];
+      const sprite = this.add.sprite(spot.x, spot.y, 'fired-cup').setDepth(14);
+      sprite.setTint(index % 2 === 0 ? 0xffffff : 0xf5d6a1);
+      return sprite;
+    });
+  }
+
+  private toggleJournal() {
+    this.renderJournal();
+    this.journalText.setVisible(!this.journalText.visible);
+  }
+
+  private renderJournal() {
+    const relationships = this.villagers
+      .map((villager) => {
+        const memory = villager.memory.snapshot();
+        return `${villager.displayName}: ${memory.warmthLabel} ${memory.emotionalWarmthScore}% — ${memory.replayEcho}`;
+      })
+      .join('\n');
+    const shelves = this.displayedCeramics.length > 0 ? this.displayedCeramics.map((cup) => `• ${cup}`).join('\n') : '• empty shelves waiting for kiln-blush';
+    const echoes = this.journalEchoes.slice(0, 4).map((echo) => `◌ ${echo}`).join('\n') || '◌ no echoes replayed yet';
+    this.journalText.setText(['Village memory journal', relationships, 'shelves:', shelves, 'echoes:', echoes].join('\n'));
+  }
+
+  private rememberJournal(echo: string) {
+    this.journalEchoes = [echo, ...this.journalEchoes.filter((entry) => entry !== echo)].slice(0, 8);
+    if (this.journalText?.visible) this.renderJournal();
+  }
+
+  private saveWorld() {
+    this.saveSystem.save({
+      inventory: this.inventory.exportState(),
+      relationships: Object.fromEntries(this.villagers.map((villager) => [villager.id, villager.memory.exportState()])),
+      displayedCeramics: [...this.displayedCeramics],
+      journalEchoes: [...this.journalEchoes],
+    });
   }
 
   private createControls() {
@@ -194,6 +297,7 @@ export class VillageScene extends Phaser.Scene {
     this.actionKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.dropKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.debugKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
+    this.journalKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.J);
   }
 
   private createHud() {
@@ -230,7 +334,7 @@ export class VillageScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100);
     this.add
-      .text(374, 8, 'E: use  Q: drop  TAB: comptext', {
+      .text(374, 8, 'E: use  Q: drop  J: journal  TAB: comptext', {
         fontFamily: 'monospace',
         fontSize: '7px',
         color: '#8aa0ba',
@@ -238,6 +342,18 @@ export class VillageScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(100);
+    this.journalText = this.add
+      .text(10, 52, '', {
+        fontFamily: 'monospace',
+        fontSize: '7px',
+        color: '#f7e7c1',
+        backgroundColor: '#211922dd',
+        padding: { x: 6, y: 5 },
+        wordWrap: { width: 180 },
+      })
+      .setScrollFactor(0)
+      .setDepth(119)
+      .setVisible(false);
     this.refreshHud();
   }
 
@@ -274,9 +390,11 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private updateNpcLife() {
-    this.mira.updateSchedule(this.atmosphereState);
-    const npcPosition = this.mira.positionForInteraction();
-    this.interactions.updatePosition('mira', npcPosition.x, npcPosition.y);
+    this.villagers.forEach((villager) => {
+      villager.updateSchedule(this.atmosphereState);
+      const npcPosition = villager.positionForInteraction();
+      this.interactions.updatePosition(villager.id, npcPosition.x, npcPosition.y);
+    });
   }
 
   private updateInteractionPrompt() {
@@ -292,6 +410,7 @@ export class VillageScene extends Phaser.Scene {
     this.inventory.collectClay();
     this.timeline.add('Workshop', 'Player gathered cool river clay near the lantern path.', 'resource:clay|rain|hands');
     this.dialogue.showHint('You kneel by the bank. Cold clay darkens your sleeves.');
+    this.saveWorld();
     this.refreshHud();
   }
 
@@ -299,6 +418,7 @@ export class VillageScene extends Phaser.Scene {
     const crafted = this.inventory.craftPottery();
     this.timeline.add('Wheel', crafted ? 'Player shaped a small cup on the pottery wheel.' : 'Player tried to craft without enough clay.', 'craft:pottery|wheel|clay');
     this.dialogue.showHint(crafted ? 'The wheel hums like rain in a teacup. A small cup takes shape.' : 'The wheel waits. You need 2 clay to shape a cup.');
+    if (crafted) this.saveWorld();
     this.refreshHud();
   }
 
@@ -306,6 +426,7 @@ export class VillageScene extends Phaser.Scene {
     const fired = this.inventory.fireKiln();
     this.timeline.add('Kiln', fired ? 'Player fired a cup in the glowing kiln.' : 'Player checked the kiln with no unfired pottery ready.', 'kiln:ember|ceramic|glow');
     this.dialogue.showHint(fired ? 'The kiln blooms orange, bright enough to make the puddles blush.' : 'Bring an unfired cup to the kiln.');
+    if (fired) this.saveWorld();
     this.refreshHud();
   }
 
@@ -313,24 +434,33 @@ export class VillageScene extends Phaser.Scene {
     const sold = this.inventory.sellPottery();
     this.timeline.add('Market stall', sold ? 'Player sold a fired cup to a raincoat traveler.' : 'Player opened the stall with no fired pottery.', 'market:coins|cup|traveler');
     this.dialogue.showHint(sold ? 'A traveler buys the cup for 18 coins and calls it a small sunrise.' : 'The stall smells of cedar and rain. You need fired pottery to sell.');
+    if (sold) this.saveWorld();
     this.refreshHud();
   }
 
   private talkToMira() {
-    const currentMemory = this.mira.memory.snapshot();
-    const canDeliver = currentMemory.questState !== 'cup-delivered' && this.inventory.has('firedCup');
+    this.talkToVillager(this.mira);
+  }
+
+  private talkToVillager(villager: Npc) {
+    const currentMemory = villager.memory.snapshot();
+    const fulfilled = currentMemory.questState === 'cup-delivered' || currentMemory.questState === 'gift-delivered';
+    const canDeliver = !fulfilled && this.inventory.has(villager.profile.preference);
     const result = canDeliver
-      ? this.deliverCupToMira()
-      : this.mira.talk(this.inventory.has('riverClay'), this.atmosphereState);
+      ? this.deliverGiftToVillager(villager)
+      : villager.talk(this.inventory.has(villager.profile.preference), this.atmosphereState);
+    this.rememberJournal(result.memory.replayEcho);
     this.dialogue.show(result.lines);
     this.debugOverlay.updateMemory(result.memory);
+    this.saveWorld();
     this.refreshHud();
   }
 
-  private deliverCupToMira() {
-    this.inventory.deliverPottery();
-    this.timeline.add('Delivery', 'Player delivered one fired cup to Mira for her windowsill tea.', 'quest:delivered|fired-cup|mira');
-    return this.mira.receiveDelivery(INVENTORY_ITEMS.firedCup.name, this.atmosphereState);
+  private deliverGiftToVillager(villager: Npc) {
+    this.inventory.remove(villager.profile.preference);
+    const itemName = INVENTORY_ITEMS[villager.profile.preference].name;
+    this.timeline.add('Delivery', `Player delivered ${itemName} to ${villager.displayName}.`, `quest:delivered|${villager.profile.preference}|${villager.id}`);
+    return villager.receiveDelivery(itemName, this.atmosphereState);
   }
 
   private dropHeldItem() {
@@ -349,6 +479,7 @@ export class VillageScene extends Phaser.Scene {
     this.interactions.register({ id, label: `Pick up ${item.name}`, x: dropX, y: dropY, radius: 18, onInteract: () => this.pickUpDroppedItem(id, itemId) });
     this.timeline.add('Satchel', `Player set down ${item.name} on the rain-dark path.`, `item:drop|${itemId}`);
     this.dialogue.showHint(`You set down ${item.name}. It rests gently in the rain.`);
+    this.saveWorld();
     this.refreshHud();
   }
 
@@ -360,6 +491,7 @@ export class VillageScene extends Phaser.Scene {
     this.droppedSprites.delete(id);
     this.timeline.add('Satchel', `Player picked ${item.name} back up from the path.`, `item:pickup|${itemId}`);
     this.dialogue.showHint(`You tuck ${item.name} back into your satchel.`);
+    this.saveWorld();
     this.refreshHud();
   }
 
@@ -370,7 +502,9 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private questLine(): string {
+    const openRequest = this.villagers.find((villager) => !['cup-delivered', 'gift-delivered'].includes(villager.memory.snapshot().questState));
     const memory = this.mira?.memory.snapshot();
+    if (!openRequest && this.displayedCeramics.length > 0) return 'The workshop shelves remember your hands.';
     if (memory?.questState === 'cup-delivered') return 'Mira remembers your cup.';
     if (this.inventory.has('firedCup')) return 'Quest: bring cup to Mira.';
     if (this.inventory.has('wetCup')) return 'Quest: fire cup in kiln.';
