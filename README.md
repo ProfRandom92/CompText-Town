@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/file_00000000fb1871f494906cd8b1ae4519.png" width="100%" />
+  <img src="./.github/assets/comptext-town-banner.png" width="100%" />
 </p>
 
 <h1 align="center">🌧️ CompText Town</h1>
