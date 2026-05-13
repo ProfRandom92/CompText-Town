@@ -2,9 +2,12 @@ import Phaser from 'phaser';
 import { CompTextDebugOverlay } from '../debug/CompTextDebugOverlay';
 import { ReplayTimeline } from '../comptext/replayTimeline';
 import { Npc } from '../npc/Npc';
+import { AmbientSoundHooks } from '../systems/AmbientSoundHooks';
+import { AtmosphereSystem } from '../systems/AtmosphereSystem';
 import { InteractionSystem } from '../systems/InteractionSystem';
 import { INVENTORY_ITEMS, InventorySystem, ItemId } from '../systems/InventorySystem';
 import { RainSystem } from '../systems/RainSystem';
+import { TimeWeatherSystem, VillageAtmosphereState } from '../systems/TimeWeatherSystem';
 import { DialogueBox } from '../ui/DialogueBox';
 import { InventoryPanel } from '../ui/InventoryPanel';
 import { createVillageMap, TILE_SIZE, TILES } from '../world/map';
@@ -22,7 +25,13 @@ export class VillageScene extends Phaser.Scene {
   private dialogue!: DialogueBox;
   private debugOverlay!: CompTextDebugOverlay;
   private rain!: RainSystem;
+  private atmosphere!: AtmosphereSystem;
+  private timeWeather!: TimeWeatherSystem;
+  private soundHooks = new AmbientSoundHooks();
+  private atmosphereState!: VillageAtmosphereState;
+  private soundHud!: Phaser.GameObjects.Text;
   private kilnGlow!: Phaser.GameObjects.Arc;
+  private kilnFire!: Phaser.GameObjects.Arc;
   private lanternGlows: Phaser.GameObjects.Arc[] = [];
   private readonly inventory = new InventorySystem();
   private readonly interactions = new InteractionSystem();
@@ -40,8 +49,8 @@ export class VillageScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, map.width * TILE_SIZE, map.height * TILE_SIZE);
     const collisionLayer = this.drawMap(map.tiles);
     this.drawWorkshopDetails();
-    this.drawVillageProps();
-    this.addAtmosphere(map.width * TILE_SIZE, map.height * TILE_SIZE);
+    const puddles = this.drawVillageProps();
+    this.addAtmosphere(map.width * TILE_SIZE, map.height * TILE_SIZE, puddles);
 
     this.player = this.physics.add.sprite(108, 122, 'player').setDepth(32).setSize(8, 10).setOffset(2, 6);
     this.player.setCollideWorldBounds(true);
@@ -62,8 +71,10 @@ export class VillageScene extends Phaser.Scene {
     this.movePlayer();
     this.updateInteractionPrompt();
     this.dialogue.update();
+    this.updateAtmosphere();
     this.rain.update();
     this.pulseLights();
+    this.updateNpcLife();
     if (Phaser.Input.Keyboard.JustDown(this.actionKey)) this.interact();
     if (Phaser.Input.Keyboard.JustDown(this.dropKey)) this.dropHeldItem();
     if (Phaser.Input.Keyboard.JustDown(this.debugKey)) this.debugOverlay.toggle();
@@ -116,6 +127,7 @@ export class VillageScene extends Phaser.Scene {
     this.add.rectangle(358, 50, 48, 12, 0x6f303d).setDepth(7);
     this.add.sprite(358, 70, 'kiln').setDepth(12);
     this.kilnGlow = this.add.circle(358, 70, 28, 0xff7f4f, 0.18).setDepth(72);
+    this.kilnFire = this.add.circle(358, 73, 6, 0xffb36b, 0.6).setDepth(13);
 
     // Resource and market touches.
     this.add.rectangle(197, 178, 28, 12, 0x8b5d43).setDepth(6);
@@ -126,7 +138,7 @@ export class VillageScene extends Phaser.Scene {
     this.add.text(382, 196, 'rain stall', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(8);
   }
 
-  private drawVillageProps() {
+  private drawVillageProps(): Phaser.GameObjects.Sprite[] {
     const lanterns = [
       { x: 145, y: 126 },
       { x: 265, y: 94 },
@@ -137,19 +149,22 @@ export class VillageScene extends Phaser.Scene {
       this.lanternGlows.push(this.add.circle(x, y - 8, 25, 0xf5b56b, 0.12).setDepth(72));
     });
 
-    [
+    const puddles = [
       { x: 132, y: 158 },
       { x: 222, y: 126 },
       { x: 284, y: 190 },
       { x: 52, y: 138 },
-    ].forEach(({ x, y }) => this.add.sprite(x, y, 'puddle').setDepth(3));
+    ].map(({ x, y }) => this.add.sprite(x, y, 'puddle').setDepth(3));
+    return puddles;
   }
 
-  private addAtmosphere(width: number, height: number) {
-    this.add.rectangle(width / 2, height / 2, width, height, 0x1a2030, 0.28).setDepth(70);
-    this.add.rectangle(width / 2, height / 2, width, height, 0x10141d, 0.12).setDepth(73);
+  private addAtmosphere(width: number, height: number, puddles: Phaser.GameObjects.Sprite[]) {
+    this.timeWeather = new TimeWeatherSystem(this);
+    this.atmosphere = new AtmosphereSystem(this);
+    this.atmosphere.create(width, height, puddles);
     this.rain = new RainSystem(this);
     this.rain.create(width, height);
+    this.atmosphereState = this.timeWeather.state();
   }
 
   private createWorldObjects(markers: ReturnType<typeof createVillageMap>['markers']) {
@@ -204,6 +219,16 @@ export class VillageScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100);
     this.inventoryPanel = new InventoryPanel(this);
+    this.soundHud = this.add
+      .text(10, 30, '', {
+        fontFamily: 'monospace',
+        fontSize: '7px',
+        color: '#8aa0ba',
+        backgroundColor: '#21192266',
+        padding: { x: 5, y: 3 },
+      })
+      .setScrollFactor(0)
+      .setDepth(100);
     this.add
       .text(374, 8, 'E: use  Q: drop  TAB: comptext', {
         fontFamily: 'monospace',
@@ -233,8 +258,25 @@ export class VillageScene extends Phaser.Scene {
 
   private pulseLights() {
     const pulse = 0.04 * Math.sin(this.time.now / 220);
-    this.kilnGlow.setAlpha(0.17 + pulse);
-    this.lanternGlows.forEach((glow, index) => glow.setAlpha(0.11 + 0.025 * Math.sin(this.time.now / 260 + index)));
+    const lanternBase = this.atmosphereState?.lanternAlpha ?? 0.12;
+    this.kilnGlow.setAlpha(0.17 + pulse + (this.atmosphereState?.phase === 'night' ? 0.06 : 0));
+    this.kilnFire.setScale(1 + Math.sin(this.time.now / 130) * 0.12, 1 + Math.cos(this.time.now / 180) * 0.18);
+    this.kilnFire.setAlpha(0.48 + Math.sin(this.time.now / 95) * 0.16);
+    this.lanternGlows.forEach((glow, index) => glow.setAlpha(lanternBase + 0.035 * Math.sin(this.time.now / 260 + index)));
+  }
+
+  private updateAtmosphere() {
+    this.atmosphereState = this.timeWeather.state();
+    this.rain.setIntensity(this.atmosphereState.rainIntensity);
+    this.atmosphere.update(this.atmosphereState);
+    this.soundHooks.update(this.atmosphereState.soundCue);
+    this.soundHud.setText(`${this.timeWeather.clockLabel(this.atmosphereState)}  ${this.soundHooks.label()}`);
+  }
+
+  private updateNpcLife() {
+    this.mira.updateSchedule(this.atmosphereState);
+    const npcPosition = this.mira.positionForInteraction();
+    this.interactions.updatePosition('mira', npcPosition.x, npcPosition.y);
   }
 
   private updateInteractionPrompt() {
@@ -279,7 +321,7 @@ export class VillageScene extends Phaser.Scene {
     const canDeliver = currentMemory.questState !== 'cup-delivered' && this.inventory.has('firedCup');
     const result = canDeliver
       ? this.deliverCupToMira()
-      : this.mira.talk(this.inventory.has('riverClay'));
+      : this.mira.talk(this.inventory.has('riverClay'), this.atmosphereState);
     this.dialogue.show(result.lines);
     this.debugOverlay.updateMemory(result.memory);
     this.refreshHud();
@@ -288,7 +330,7 @@ export class VillageScene extends Phaser.Scene {
   private deliverCupToMira() {
     this.inventory.deliverPottery();
     this.timeline.add('Delivery', 'Player delivered one fired cup to Mira for her windowsill tea.', 'quest:delivered|fired-cup|mira');
-    return this.mira.receiveDelivery(INVENTORY_ITEMS.firedCup.name);
+    return this.mira.receiveDelivery(INVENTORY_ITEMS.firedCup.name, this.atmosphereState);
   }
 
   private dropHeldItem() {
