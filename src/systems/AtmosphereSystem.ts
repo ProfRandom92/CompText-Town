@@ -3,6 +3,7 @@ import { VillageAtmosphereState } from './TimeWeatherSystem';
 
 interface ShimmerPuddle {
   sprite: Phaser.GameObjects.Sprite;
+  glint: Phaser.GameObjects.Rectangle;
   seed: number;
 }
 
@@ -19,6 +20,7 @@ export class AtmosphereSystem {
   private puddles: ShimmerPuddle[] = [];
   private smoke: SmokeParticle[] = [];
   private wildlife: Phaser.GameObjects.Text[] = [];
+  private memoryMotes: Phaser.GameObjects.Arc[] = [];
   private workshopWarmth!: Phaser.GameObjects.Rectangle;
 
   constructor(private readonly scene: Phaser.Scene) {}
@@ -26,6 +28,7 @@ export class AtmosphereSystem {
   create(width: number, height: number, puddleSprites: Phaser.GameObjects.Sprite[]) {
     this.nightVeil = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x10141d, 0.24).setDepth(70);
     this.workshopWarmth = this.scene.add.rectangle(79, 88, 86, 45, 0xf5b56b, 0.08).setDepth(71);
+    this.scene.add.circle(79, 91, 58, 0xf5b56b, 0.045).setDepth(69);
 
     for (let i = 0; i < 4; i += 1) {
       this.fogBands.push(
@@ -33,7 +36,11 @@ export class AtmosphereSystem {
       );
     }
 
-    this.puddles = puddleSprites.map((sprite, index) => ({ sprite, seed: index * 1.7 }));
+    this.puddles = puddleSprites.map((sprite, index) => ({
+      sprite,
+      glint: this.scene.add.rectangle(sprite.x + 1, sprite.y - 1, 10, 1, 0xf7e7c1, 0.22).setDepth(4),
+      seed: index * 1.7,
+    }));
 
     [
       { x: 46, y: 46 },
@@ -49,6 +56,12 @@ export class AtmosphereSystem {
         });
       }
     });
+
+    for (let i = 0; i < 14; i += 1) {
+      this.memoryMotes.push(
+        this.scene.add.circle(35 + (i * 31) % width, 45 + (i * 47) % (height - 72), 1, i % 3 === 0 ? 0xf5b56b : 0xb9cfa8, 0.18).setDepth(76),
+      );
+    }
 
     [
       { x: 172, y: 48, glyph: '·' },
@@ -71,9 +84,13 @@ export class AtmosphereSystem {
       band.setAlpha(state.fogAlpha * (0.42 + index * 0.08));
     });
 
-    this.puddles.forEach(({ sprite, seed }) => {
-      sprite.setAlpha(0.46 + state.rainIntensity * 0.24 + Math.sin(now / 280 + seed) * 0.08);
+    this.puddles.forEach(({ sprite, glint, seed }) => {
+      const shimmer = Math.sin(now / 280 + seed);
+      sprite.setAlpha(0.46 + state.rainIntensity * 0.24 + shimmer * 0.08);
       sprite.setScale(1 + Math.sin(now / 420 + seed) * 0.035, 1);
+      glint.x = sprite.x + Math.sin(now / 520 + seed) * 3;
+      glint.setAlpha((state.phase === 'night' ? 0.36 : 0.18) + state.rainIntensity * 0.12 + Math.max(0, shimmer) * 0.12);
+      glint.setScale(0.7 + Math.max(0, shimmer) * 0.55, 1);
     });
 
     this.smoke.forEach((particle) => {
@@ -81,6 +98,12 @@ export class AtmosphereSystem {
       particle.shape.x = particle.originX + Math.sin(now / 900 + particle.seed) * 7;
       particle.shape.y = particle.originY - drift;
       particle.shape.setAlpha(Math.max(0, 0.17 - drift / 280));
+    });
+
+    this.memoryMotes.forEach((mote, index) => {
+      mote.x += Math.sin(now / 900 + index) * 0.018;
+      mote.y += Math.cos(now / 1100 + index) * 0.014;
+      mote.setAlpha((state.phase === 'night' ? 0.3 : 0.16) + Math.max(0, Math.sin(now / 750 + index)) * 0.18);
     });
 
     this.wildlife.forEach((glyph, index) => {

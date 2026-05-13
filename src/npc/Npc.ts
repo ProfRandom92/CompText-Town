@@ -88,6 +88,7 @@ export const VILLAGER_PROFILES: VillagerProfile[] = [
 export class Npc extends Phaser.Physics.Arcade.Sprite {
   readonly memory: NpcMemory;
   private currentAnchor: NpcAnchor;
+  private moodGlyph: Phaser.GameObjects.Text;
 
   constructor(
     scene: Phaser.Scene,
@@ -103,6 +104,11 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this, true);
     this.setDepth(20);
+    this.moodGlyph = scene.add.text(x, y - 18, '…', {
+      fontFamily: 'monospace',
+      fontSize: '8px',
+      color: '#f7e7c1',
+    }).setOrigin(0.5).setDepth(42).setAlpha(0.45);
     this.currentAnchor = { x, y };
   }
 
@@ -123,8 +129,12 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     const offsetY = Math.cos(this.scene.time.now / (2100 + this.profile.id.length * 60)) * (wander * 0.45);
     this.x = Phaser.Math.Linear(this.x, target.x + offsetX, 0.015);
     this.y = Phaser.Math.Linear(this.y, target.y + offsetY, 0.015);
+    const idleBreath = Math.sin(this.scene.time.now / (360 + this.profile.warmthSeed * 13));
     this.setDepth(this.y + 18);
+    this.setScale(1 + idleBreath * 0.018, 1 - idleBreath * 0.012);
+    this.setTint(this.memory.snapshot().relationship >= 40 ? 0xfff1cf : 0xffffff);
     this.setFlipX(Math.sin(this.scene.time.now / 1600) < 0);
+    this.updateMoodGlyph(state);
   }
 
   talk(hasPreferredGift: boolean, state: VillageAtmosphereState): { lines: DialogueLine[]; memory: NpcMemorySnapshot } {
@@ -167,6 +177,15 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
       ],
       memory,
     };
+  }
+
+  private updateMoodGlyph(state: VillageAtmosphereState) {
+    const memory = this.memory.snapshot();
+    const glyph = memory.deliveredItem ? '♡' : state.rainIntensity > 0.76 ? '☂' : memory.relationship >= 18 ? '♪' : '…';
+    this.moodGlyph.setText(glyph);
+    this.moodGlyph.setPosition(this.x, this.y - 17 + Math.sin(this.scene.time.now / 520 + this.profile.warmthSeed) * 1.3);
+    this.moodGlyph.setDepth(this.y + 38);
+    this.moodGlyph.setAlpha(0.26 + Math.sin(this.scene.time.now / 760 + this.profile.warmthSeed) * 0.12 + (memory.relationship / 100) * 0.28);
   }
 
   positionForInteraction(): Phaser.Math.Vector2 {
