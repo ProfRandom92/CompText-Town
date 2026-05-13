@@ -16,6 +16,7 @@ The intended feeling is: **Studio Ghibli meets semantic AI observability**.
   4. sell fired pottery at the stall.
 - Mira, the first villager NPC, with relationship growth and compressed conversation memory.
 - Optional CompText debug overlay showing token reduction, semantic retention, drift, memory state, compressed context, and replay events.
+- Export-ready Remotion trailer composition for a cinematic rainy pottery-village reveal.
 - Placeholder pixel textures generated at boot for a cloud-friendly first version without a heavy asset pipeline.
 
 ## Controls
@@ -36,6 +37,7 @@ src/
   npc/        NPC actors, dialogue, relationship memory
   scenes/     Phaser scenes
   systems/    Inventory, interaction, rain and game systems
+  trailer/    Remotion trailer compositions, reusable cinematic components, and scene system
   ui/         Pixel-friendly dialogue and HUD UI
   world/      Village tilemap and world markers
 ```
@@ -52,6 +54,25 @@ Build for production:
 ```bash
 npm run build
 ```
+
+## Remotion trailer
+
+The cinematic trailer lives in `src/trailer` and is structured as modular React + TypeScript scenes. It aims for **cozy atmospheric pixel-art** rather than a corporate product walkthrough: warm lanterns, rainy cobblestones, glowing pottery, fog, replay echoes, and subtle semantic memory magic.
+
+```bash
+# Open the Remotion Studio timeline
+npm run trailer:studio
+
+# Validate available Remotion compositions
+npm run trailer:compositions
+
+# Render the export-ready MP4
+npm run trailer:render
+```
+
+Composition ID: `CompTextTownTrailer`
+
+Soundtrack timing hooks are defined alongside the trailer constants so music, rain beds, kiln swells, replay granules, and logo chords can be synced during final audio production.
 
 ## Design principles
 

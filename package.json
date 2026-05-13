@@ -6,13 +6,22 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "trailer:studio": "remotion studio src/trailer/index.ts",
+    "trailer:render": "remotion render src/trailer/index.ts CompTextTownTrailer out/comptext-town-trailer.mp4",
+    "trailer:compositions": "remotion compositions src/trailer/index.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "remotion": "^4.0.460",
     "vite": "^6.0.0"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.460",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "typescript": "^5.8.0"
   }
 }
