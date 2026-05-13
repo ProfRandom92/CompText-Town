@@ -53,15 +53,84 @@ export class BootScene extends Phaser.Scene {
       '....cc.....',
       '............',
     ]);
-    this.createTexture('pot', 10, 12, [
+    this.createTexture('pot', 8, 8, [
       '..cccc..',
       '.c7777c.',
-      'c777777c',
       'c777777c',
       'c777777c',
       '.c7777c.',
       '..cccc..',
       '........',
+      '........',
+    ]);
+    this.createTexture('kiln', 22, 24, [
+      '....6666666666....',
+      '..66bbbbbbbb66....',
+      '.6bb66666666bb6...',
+      '6bb644444446bb6..',
+      '6b644ffff446b6...',
+      '6b64fddddf46b6...',
+      '6b64fddddf46b6...',
+      '6b644ffff446b6...',
+      '6bb644444446bb6..',
+      '.6bb66666666bb6...',
+      '..666666666666....',
+      '...6b6....6b6.....',
+    ]);
+    this.createTexture('lantern-post', 9, 22, [
+      '....6....',
+      '....6....',
+      '...666...',
+      '..6dd6...',
+      '..6dd6...',
+      '...66....',
+      '....6....',
+      '....6....',
+      '....6....',
+      '....6....',
+      '...666...',
+    ]);
+    this.createTexture('puddle', 16, 6, [
+      '....999999......',
+      '..9999999999....',
+      '.999999999999...',
+      '..9999999999....',
+      '....999999......',
+      '................',
+    ]);
+    this.createTexture('pottery-wheel', 16, 12, [
+      '....bbbb....',
+      '..bb7777bb..',
+      '.b7777777b..',
+      '.b7777777b..',
+      '..bb7777bb..',
+      '....bbbb....',
+      '.....66.....',
+      '....6666....',
+      '...6bbbb6...',
+      '...6bbbb6...',
+      '............',
+      '............',
+    ]);
+    this.createTexture('shelf-pots', 18, 16, [
+      '666666666666666666',
+      '6....cc....cc....6',
+      '6...c77c..c77c...6',
+      '6....cc....cc....6',
+      '666666666666666666',
+      '6..cc....cc....cc6',
+      '6.c77c..c77c..c776',
+      '6..cc....cc....cc6',
+      '666666666666666666',
+      '..................',
+    ]);
+    this.createTexture('rolled-rug', 24, 10, [
+      '...bbbbbbbbbbbbbbbb...',
+      '..b888888888888888b..',
+      '.b88aaaaaaaaaaaa88b.',
+      '.b88aaaaaaaaaaaa88b.',
+      '..b888888888888888b..',
+      '...bbbbbbbbbbbbbbbb...',
     ]);
     this.scene.start('VillageScene');
   }
@@ -80,6 +149,8 @@ export class BootScene extends Phaser.Scene {
       a: 0xd59b6a,
       b: 0x463445,
       c: 0xb97752,
+      d: pixelPalette.lantern,
+      f: pixelPalette.kiln,
     };
     const canvas = this.textures.createCanvas(key, width, height);
     if (!canvas) return;
