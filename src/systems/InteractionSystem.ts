@@ -21,6 +21,13 @@ export class InteractionSystem {
     this.interactables = this.interactables.filter((interactable) => interactable.id !== id);
   }
 
+  updatePosition(id: string, x: number, y: number) {
+    const interactable = this.interactables.find((candidate) => candidate.id === id);
+    if (!interactable) return;
+    interactable.x = x;
+    interactable.y = y;
+  }
+
   nearest(point: Phaser.Math.Vector2): Interactable | undefined {
     return this.interactables
       .map((interactable) => ({

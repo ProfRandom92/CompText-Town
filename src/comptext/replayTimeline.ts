@@ -6,8 +6,17 @@ export interface ReplayEvent {
   compressedContext: string;
 }
 
+export interface MemorySnapshotMoment {
+  id: number;
+  label: string;
+  warmth: number;
+  drift: number;
+  compressedText: string;
+}
+
 export class ReplayTimeline {
   private events: ReplayEvent[] = [];
+  private moments: MemorySnapshotMoment[] = [];
   private nextId = 1;
 
   add(actor: string, summary: string, compressedContext: string): ReplayEvent {
@@ -23,7 +32,16 @@ export class ReplayTimeline {
     return event;
   }
 
+  addMoment(label: string, warmth: number, drift: number, compressedText: string) {
+    this.moments.unshift({ id: this.nextId++, label, warmth, drift, compressedText });
+    this.moments = this.moments.slice(0, 4);
+  }
+
   list(): ReplayEvent[] {
     return [...this.events];
+  }
+
+  snapshots(): MemorySnapshotMoment[] {
+    return [...this.moments];
   }
 }

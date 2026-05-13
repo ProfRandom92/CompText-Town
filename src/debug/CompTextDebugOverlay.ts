@@ -9,10 +9,10 @@ export class CompTextDebugOverlay {
   private memory?: NpcMemorySnapshot;
 
   constructor(private readonly scene: Phaser.Scene, private readonly timeline: ReplayTimeline) {
-    this.panel = scene.add.rectangle(278, 80, 196, 138, 0x10141d, 0.82).setScrollFactor(0).setDepth(120);
+    this.panel = scene.add.rectangle(278, 85, 196, 154, 0x10141d, 0.82).setScrollFactor(0).setDepth(120);
     this.panel.setStrokeStyle(1, 0x6ee7b7, 0.65);
     this.text = scene.add
-      .text(186, 16, '', {
+      .text(186, 13, '', {
         fontFamily: 'monospace',
         fontSize: '7px',
         color: '#bfffe5',
@@ -44,22 +44,33 @@ export class CompTextDebugOverlay {
     if (!this.enabled) return;
     const compression = this.memory?.compression;
     const replayEvents = this.timeline.list();
-    const events = replayEvents.map((event) => `#${event.id} ${event.actor}: ${event.summary.slice(0, 30)}…`).join('\n');
+    const moments = this.timeline.snapshots();
+    const events = replayEvents.map((event) => `#${event.id} ${event.actor}: ${event.summary.slice(0, 28)}…`).join('\n');
+    const snapshots = moments.map((moment) => `◌ ${moment.label} w${moment.warmth}/d${moment.drift} ${moment.compressedText.slice(0, 26)}…`).join('\n');
     const compressedMemory = compression?.compressedText ?? 'memory:quiet-rain';
+    const warmth = this.memory?.relationship ?? 0;
+    const drift = compression?.driftScore ?? 0;
     this.text.setText([
-      'hidden CompTextv7 pane',
+      'hidden CompTextv7 memory underlay',
       `NPC: ${this.memory?.npcName ?? 'listening...'}`,
-      `memory events: ${this.memory?.eventCount ?? 0}`,
+      `warmth: ${this.bar(warmth)} ${warmth}%`,
+      `semantic drift: ${this.bar(100 - drift)} ${drift}%`,
+      `timeline events: ${this.memory?.eventCount ?? 0}`,
       `dialogue size: ${compression ? `${compression.rawTokens}→${compression.compressedTokens} tok` : '—'}`,
-      `compressed size: ${compressedMemory.length} chars`,
-      `semantic retention: ${compression?.retentionScore ?? 0}%`,
-      `semantic reduction: ${compression?.tokenReduction ?? 0}%`,
-      `replay events: ${replayEvents.length}`,
+      `compressed snapshot: ${compressedMemory.length} chars`,
+      `retention/reduction: ${compression?.retentionScore ?? 0}%/${compression?.tokenReduction ?? 0}%`,
       `quest: ${this.memory?.questState ?? 'requesting-cup'}`,
       `delivered: ${this.memory?.deliveredItem ?? '—'}`,
       `memory: ${compressedMemory}`,
-      'replay:',
+      'replayable moments:',
+      snapshots || '◌ no memory moments yet',
+      'recent timeline:',
       events || 'no events yet',
     ].join('\n'));
+  }
+
+  private bar(value: number): string {
+    const filled = Math.round(Phaser.Math.Clamp(value, 0, 100) / 20);
+    return `${'♥'.repeat(filled)}${'·'.repeat(5 - filled)}`;
   }
 }
