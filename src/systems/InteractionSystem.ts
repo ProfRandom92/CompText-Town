@@ -13,7 +13,12 @@ export class InteractionSystem {
   private interactables: Interactable[] = [];
 
   register(interactable: Interactable) {
+    this.unregister(interactable.id);
     this.interactables.push(interactable);
+  }
+
+  unregister(id: string) {
+    this.interactables = this.interactables.filter((interactable) => interactable.id !== id);
   }
 
   nearest(point: Phaser.Math.Vector2): Interactable | undefined {
