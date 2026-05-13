@@ -38,6 +38,7 @@ export class VillageScene extends Phaser.Scene {
   private potteryWheel!: Phaser.GameObjects.Sprite;
   private kilnFireSprite!: Phaser.GameObjects.Sprite;
   private windowGlows: Phaser.GameObjects.Rectangle[] = [];
+  private windowGlowHalos: Phaser.GameObjects.Arc[] = [];
   private memoryEchoes: Phaser.GameObjects.GameObject[] = [];
   private lanternGlows: Phaser.GameObjects.Arc[] = [];
   private lanternReflectionStrips: Phaser.GameObjects.Rectangle[] = [];
@@ -142,16 +143,31 @@ export class VillageScene extends Phaser.Scene {
 
   private drawWorkshopDetails() {
     // Exterior shell and warm interior floor.
+    this.add.ellipse(79, 116, 112, 22, 0x171520, 0.32).setDepth(3);
     this.add.rectangle(79, 68, 92, 50, 0x6f303d).setDepth(4);
     this.add.rectangle(79, 50, 104, 10, 0x4c2f2f).setDepth(8);
     this.add.rectangle(79, 57, 98, 5, 0x8b4c4f).setDepth(9);
+    this.add.rectangle(50, 52, 24, 3, 0x9d5556, 0.68).setDepth(10);
+    this.add.rectangle(84, 49, 26, 3, 0x2b2634, 0.34).setDepth(10);
+    this.add.rectangle(112, 55, 18, 2, 0xd59b6a, 0.36).setDepth(10);
+    this.add.rectangle(66, 61, 52, 2, 0x211922, 0.3).setDepth(10);
+    this.add.rectangle(104, 62, 22, 2, 0xf5b56b, 0.18).setDepth(10);
     this.add.rectangle(79, 86, 84, 54, 0xa97857).setDepth(5);
+    this.add.rectangle(79, 61, 86, 3, 0x211922, 0.26).setDepth(7);
     this.add.rectangle(79, 113, 18, 10, 0x211922).setDepth(8);
     this.add.rectangle(79, 106, 20, 6, 0xd59b6a).setDepth(7);
     this.add.rectangle(46, 78, 14, 14, 0x2a2534).setDepth(8);
+    this.windowGlowHalos.push(this.add.circle(46, 78, 20, 0xf5b56b, 0.08).setDepth(71));
     this.windowGlows.push(this.add.rectangle(46, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9));
+    this.add.rectangle(46, 78, 12, 1, 0xf7e7c1, 0.42).setDepth(10);
+    this.add.rectangle(46, 78, 1, 12, 0xf7e7c1, 0.32).setDepth(10);
     this.add.rectangle(111, 78, 14, 14, 0x2a2534).setDepth(8);
+    this.windowGlowHalos.push(this.add.circle(111, 78, 20, 0xf5b56b, 0.08).setDepth(71));
     this.windowGlows.push(this.add.rectangle(111, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9));
+    this.add.rectangle(111, 78, 12, 1, 0xf7e7c1, 0.42).setDepth(10);
+    this.add.rectangle(111, 78, 1, 12, 0xf7e7c1, 0.32).setDepth(10);
+    this.add.rectangle(46, 91, 24, 2, 0xf5b56b, 0.12).setDepth(4);
+    this.add.rectangle(111, 91, 24, 2, 0xf5b56b, 0.12).setDepth(4);
     this.add.rectangle(75, 39, 66, 9, 0x211922, 0.78).setDepth(10);
     this.add.text(36, 36, 'Mosscup Pottery', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(11);
     this.add.text(111, 53, '◌', { fontFamily: 'monospace', fontSize: '9px', color: '#f5b56b' }).setDepth(12).setAlpha(0.72);
@@ -161,6 +177,7 @@ export class VillageScene extends Phaser.Scene {
     this.add.sprite(96, 94, 'shelf-pots').setDepth(12);
     this.add.rectangle(94, 72, 32, 4, 0x4c2f2f).setDepth(12);
     this.add.rectangle(94, 85, 32, 4, 0x4c2f2f).setDepth(12);
+    this.drawShelfClutter();
     this.add.sprite(76, 86, 'rolled-rug').setDepth(11);
     this.add.sprite(58, 110, 'floor-cushion').setDepth(11).setTint(0xd59b6a);
     this.add.sprite(101, 110, 'floor-cushion').setDepth(11).setTint(0x6f8e77);
@@ -183,9 +200,12 @@ export class VillageScene extends Phaser.Scene {
     });
 
     // Exterior kiln shed.
+    this.add.ellipse(358, 90, 62, 14, 0x171520, 0.34).setDepth(3);
     this.add.rectangle(358, 67, 42, 34, 0x4a3338).setDepth(6);
     this.add.rectangle(358, 50, 48, 12, 0x6f303d).setDepth(7);
     this.add.rectangle(358, 56, 56, 4, 0x2a2534).setDepth(8);
+    this.add.rectangle(344, 51, 18, 3, 0x9d5556, 0.62).setDepth(9);
+    this.add.rectangle(370, 54, 22, 2, 0xd59b6a, 0.28).setDepth(9);
     this.add.sprite(358, 70, 'kiln').setDepth(12);
     this.kilnGlow = this.add.circle(358, 70, 28, 0xff7f4f, 0.18).setDepth(72);
     this.kilnFire = this.add.circle(358, 73, 6, 0xffb36b, 0.6).setDepth(13);
@@ -193,13 +213,39 @@ export class VillageScene extends Phaser.Scene {
 
     // Resource and market touches.
     this.add.rectangle(197, 178, 28, 12, 0x8b5d43).setDepth(6);
+    this.add.ellipse(197, 184, 46, 10, 0x171520, 0.28).setDepth(3);
     this.add.sprite(197, 168, 'clay-node').setDepth(12);
     this.add.text(183, 154, 'river clay', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(8);
     this.add.rectangle(404, 218, 32, 18, 0x4c3a30).setDepth(6);
+    this.add.ellipse(404, 228, 52, 11, 0x171520, 0.3).setDepth(3);
     this.add.rectangle(404, 203, 38, 8, 0x6f303d).setDepth(8);
     this.add.sprite(396, 210, 'pot').setDepth(12);
     this.add.sprite(411, 211, 'fired-cup').setDepth(12).setTint(0xf5d6a1);
     this.add.text(382, 196, 'rain stall', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(8);
+  }
+
+  private drawShelfClutter() {
+    [
+      { x: 84, y: 69, tint: 0xf5d6a1 },
+      { x: 94, y: 69, tint: 0xb97752 },
+      { x: 104, y: 69, tint: 0x8aa0ba },
+      { x: 87, y: 82, tint: 0xd59b6a },
+      { x: 99, y: 82, tint: 0xf7e7c1 },
+      { x: 109, y: 82, tint: 0x6f8e77 },
+    ].forEach(({ x, y, tint }, index) => {
+      const cup = this.add.sprite(x, y, index % 3 === 0 ? 'wet-cup' : 'fired-cup').setDepth(13).setScale(0.72);
+      cup.setTint(tint);
+      this.add.rectangle(x, y + 4, 8, 1, 0x211922, 0.26).setDepth(12);
+    });
+
+    [
+      { x: 42, y: 99, w: 10, h: 5, color: 0xb97752 },
+      { x: 116, y: 104, w: 9, h: 6, color: 0xf5d6a1 },
+      { x: 120, y: 88, w: 7, h: 4, color: 0x8aa0ba },
+    ].forEach(({ x, y, w, h, color }) => {
+      this.add.ellipse(x, y, w, h, color, 0.86).setDepth(13);
+      this.add.rectangle(x, y - h / 2, w - 3, 1, 0xf7e7c1, 0.24).setDepth(14);
+    });
   }
 
   private drawVillageProps(): Phaser.GameObjects.Sprite[] {
@@ -519,6 +565,10 @@ export class VillageScene extends Phaser.Scene {
     this.potteryWheel.setY(94 + Math.sin(this.time.now / 260) * 0.35);
     const nightBoost = this.atmosphereState?.phase === 'night' ? 0.22 : 0;
     this.windowGlows.forEach((glow, index) => glow.setAlpha(0.48 + nightBoost + 0.08 * Math.sin(this.time.now / 320 + index)));
+    this.windowGlowHalos.forEach((halo, index) => {
+      halo.setAlpha(0.06 + nightBoost * 0.35 + 0.025 * Math.sin(this.time.now / 420 + index));
+      halo.setScale(1 + Math.sin(this.time.now / 650 + index) * 0.04);
+    });
     this.lanternGlows.forEach((glow, index) => glow.setAlpha(lanternBase + 0.035 * Math.sin(this.time.now / 260 + index)));
     this.lanternReflectionStrips.forEach((strip, index) => {
       strip.setAlpha(0.06 + lanternBase * 0.35 + 0.035 * Math.sin(this.time.now / 310 + index));
