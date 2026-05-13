@@ -14,6 +14,11 @@ export interface InventoryState {
   coins: number;
 }
 
+export interface InventorySaveState {
+  counts: Record<ItemId, number>;
+  coins: number;
+}
+
 export interface DroppedItem {
   id: string;
   itemId: ItemId;
@@ -74,6 +79,24 @@ export class InventorySystem {
 
   has(itemId: ItemId, amount = 1): boolean {
     return this.count(itemId) >= amount;
+  }
+
+  exportState(): InventorySaveState {
+    return {
+      counts: { ...this.counts },
+      coins: this.state.coins,
+    };
+  }
+
+  restore(save?: InventorySaveState) {
+    if (!save) return;
+    this.counts = {
+      riverClay: Math.max(0, save.counts.riverClay ?? 0),
+      wetCup: Math.max(0, save.counts.wetCup ?? 0),
+      firedCup: Math.max(0, save.counts.firedCup ?? 0),
+    };
+    this.state.coins = Math.max(0, save.coins ?? this.state.coins);
+    this.syncLegacyState();
   }
 
   entries(): Array<{ definition: InventoryItemDefinition; count: number }> {
