@@ -35,6 +35,10 @@ export class VillageScene extends Phaser.Scene {
   private journalText!: Phaser.GameObjects.Text;
   private kilnGlow!: Phaser.GameObjects.Arc;
   private kilnFire!: Phaser.GameObjects.Arc;
+  private potteryWheel!: Phaser.GameObjects.Sprite;
+  private kilnFireSprite!: Phaser.GameObjects.Sprite;
+  private windowGlows: Phaser.GameObjects.Rectangle[] = [];
+  private memoryEchoes: Phaser.GameObjects.GameObject[] = [];
   private lanternGlows: Phaser.GameObjects.Arc[] = [];
   private readonly inventory = new InventorySystem();
   private readonly interactions = new InteractionSystem();
@@ -134,17 +138,25 @@ export class VillageScene extends Phaser.Scene {
     this.add.rectangle(79, 113, 18, 10, 0x211922).setDepth(8);
     this.add.rectangle(79, 106, 20, 6, 0xd59b6a).setDepth(7);
     this.add.rectangle(46, 78, 14, 14, 0x2a2534).setDepth(8);
-    this.add.rectangle(46, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9);
+    this.windowGlows.push(this.add.rectangle(46, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9));
     this.add.rectangle(111, 78, 14, 14, 0x2a2534).setDepth(8);
-    this.add.rectangle(111, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9);
+    this.windowGlows.push(this.add.rectangle(111, 78, 8, 8, 0xf5b56b, 0.72).setDepth(9));
     this.add.text(36, 41, 'Mosscup Pottery', { fontFamily: 'monospace', fontSize: '7px', color: '#f7e7c1' }).setDepth(10);
 
     // Interior craft stations.
-    this.add.sprite(61, 94, 'pottery-wheel').setDepth(12);
+    this.potteryWheel = this.add.sprite(61, 94, 'pottery-wheel').setDepth(12);
     this.add.sprite(96, 94, 'shelf-pots').setDepth(12);
     this.add.rectangle(94, 72, 32, 4, 0x4c2f2f).setDepth(12);
     this.add.rectangle(94, 85, 32, 4, 0x4c2f2f).setDepth(12);
     this.add.sprite(76, 86, 'rolled-rug').setDepth(11);
+    this.add.sprite(58, 110, 'floor-cushion').setDepth(11).setTint(0xd59b6a);
+    this.add.sprite(101, 110, 'floor-cushion').setDepth(11).setTint(0x6f8e77);
+    this.add.sprite(80, 106, 'tea-tray').setDepth(12);
+    this.add.rectangle(33, 92, 2, 28, 0x6f8e77, 0.75).setDepth(13);
+    this.add.rectangle(35, 82, 6, 2, 0xb9cfa8, 0.75).setDepth(13);
+    this.add.rectangle(122, 96, 18, 5, 0x4c2f2f).setDepth(12);
+    this.add.rectangle(122, 91, 4, 6, 0xd59b6a).setDepth(13);
+    this.add.circle(79, 92, 44, 0xf5b56b, 0.06).setDepth(10);
 
     // Exterior kiln shed.
     this.add.rectangle(358, 67, 42, 34, 0x4a3338).setDepth(6);
@@ -152,6 +164,7 @@ export class VillageScene extends Phaser.Scene {
     this.add.sprite(358, 70, 'kiln').setDepth(12);
     this.kilnGlow = this.add.circle(358, 70, 28, 0xff7f4f, 0.18).setDepth(72);
     this.kilnFire = this.add.circle(358, 73, 6, 0xffb36b, 0.6).setDepth(13);
+    this.kilnFireSprite = this.add.sprite(358, 75, 'kiln-fire-a').setDepth(14);
 
     // Resource and market touches.
     this.add.rectangle(197, 178, 28, 12, 0x8b5d43).setDepth(6);
@@ -209,6 +222,9 @@ export class VillageScene extends Phaser.Scene {
 
     this.interactions.register({ id: 'wheel', label: 'Shape a cup', x: 61, y: 94, radius: 28, onInteract: () => this.craftPottery() });
     this.interactions.register({ id: 'display-shelf', label: 'Place cup on shelf', x: 96, y: 94, radius: 26, onInteract: () => this.placeCupOnShelf() });
+    this.interactions.register({ id: 'admire-shelf', label: 'Admire displayed cups', x: 96, y: 78, radius: 24, onInteract: () => this.admireDisplay() });
+    this.interactions.register({ id: 'tea-table', label: 'Share a quiet tea', x: 80, y: 106, radius: 24, onInteract: () => this.shareTea() });
+    this.interactions.register({ id: 'cushion-seat', label: 'Sit by the warm floor', x: 58, y: 110, radius: 20, onInteract: () => this.sitByWorkshop() });
     this.interactions.register({ id: 'stall', label: 'Sell spare cup', x: 396, y: 210, radius: 30, onInteract: () => this.sellPottery() });
   }
 
@@ -248,6 +264,57 @@ export class VillageScene extends Phaser.Scene {
     this.saveWorld();
     this.dialogue.showHint('You set the cup on the shelf. The workshop feels a little more yours.');
     this.refreshHud();
+  }
+
+
+  private admireDisplay() {
+    if (this.displayedCeramics.length === 0) {
+      this.dialogue.showHint('The empty shelf glows anyway, as if making room for future mornings.');
+      this.spawnMemoryEcho(96, 78, 'unwritten cup');
+      return;
+    }
+    const admirer = Phaser.Utils.Array.GetRandom(this.villagers);
+    const cup = Phaser.Utils.Array.GetRandom(this.displayedCeramics);
+    const line = `${admirer.displayName} pauses by the shelf: “That ${cup} still looks warm. It remembers your hands.”`;
+    this.timeline.add('Display admiration', line, 'display:admire|ceramic|warmth');
+    this.rememberJournal(line);
+    this.dialogue.showHint(line, 4200);
+    this.spawnMemoryEcho(96, 78, cup);
+    this.saveWorld();
+  }
+
+  private shareTea() {
+    const companion = Phaser.Utils.Array.GetRandom(this.villagers);
+    const line = `${companion.displayName} shares tea in a mismatched cup; rain softens into a remembered room.`;
+    this.timeline.add('Tea table', line, 'tea:quiet|warmth|memory');
+    this.rememberJournal(line);
+    this.dialogue.showHint(line, 4200);
+    this.spawnMemoryEcho(80, 103, 'tea steam / old words');
+    this.saveWorld();
+  }
+
+  private sitByWorkshop() {
+    const line = this.journalEchoes[0] ?? 'For a moment, the workshop only asks you to breathe with the rain.';
+    this.timeline.add('Workshop seat', `Player sat beside the warm floor and replayed: ${line}`, 'sit:rest|memory-echo|rain');
+    this.dialogue.showHint(`You sit until a memory echo surfaces: ${line}`, 4400);
+    this.spawnMemoryEcho(this.player.x, this.player.y - 14, 'memory echo');
+  }
+
+  private spawnMemoryEcho(x: number, y: number, label: string) {
+    const fragment = this.add.sprite(x, y - 8, 'memory-fragment').setDepth(90).setAlpha(0.88);
+    const text = this.add.text(x, y - 22, `◌ ${label}`, {
+      fontFamily: 'monospace',
+      fontSize: '7px',
+      color: '#f7e7c1',
+      backgroundColor: '#26384d88',
+      padding: { x: 3, y: 2 },
+    }).setOrigin(0.5).setDepth(91).setAlpha(0.9);
+    this.memoryEchoes.push(fragment, text);
+    this.tweens.add({ targets: [fragment, text], y: '-=18', alpha: 0, duration: 2600, ease: 'Sine.easeOut', onComplete: () => {
+      fragment.destroy();
+      text.destroy();
+      this.memoryEchoes = this.memoryEchoes.filter((echo) => echo !== fragment && echo !== text);
+    } });
   }
 
   private updateDisplayShelves() {
@@ -378,6 +445,12 @@ export class VillageScene extends Phaser.Scene {
     this.kilnGlow.setAlpha(0.17 + pulse + (this.atmosphereState?.phase === 'night' ? 0.06 : 0));
     this.kilnFire.setScale(1 + Math.sin(this.time.now / 130) * 0.12, 1 + Math.cos(this.time.now / 180) * 0.18);
     this.kilnFire.setAlpha(0.48 + Math.sin(this.time.now / 95) * 0.16);
+    this.kilnFireSprite.setTexture(Math.floor(this.time.now / 180) % 2 === 0 ? 'kiln-fire-a' : 'kiln-fire-b');
+    this.kilnFireSprite.setScale(1 + Math.sin(this.time.now / 150) * 0.08, 1 + Math.cos(this.time.now / 170) * 0.12);
+    this.potteryWheel.setTexture(Math.floor(this.time.now / 220) % 2 === 0 ? 'pottery-wheel' : 'pottery-wheel-2');
+    this.potteryWheel.setY(94 + Math.sin(this.time.now / 260) * 0.35);
+    const nightBoost = this.atmosphereState?.phase === 'night' ? 0.22 : 0;
+    this.windowGlows.forEach((glow, index) => glow.setAlpha(0.48 + nightBoost + 0.08 * Math.sin(this.time.now / 320 + index)));
     this.lanternGlows.forEach((glow, index) => glow.setAlpha(lanternBase + 0.035 * Math.sin(this.time.now / 260 + index)));
   }
 
@@ -450,6 +523,7 @@ export class VillageScene extends Phaser.Scene {
       ? this.deliverGiftToVillager(villager)
       : villager.talk(this.inventory.has(villager.profile.preference), this.atmosphereState);
     this.rememberJournal(result.memory.replayEcho);
+    if (result.memory.eventCount > 1 || result.memory.deliveredItem) this.spawnMemoryEcho(villager.x, villager.y - 18, result.memory.replayEcho);
     this.dialogue.show(result.lines);
     this.debugOverlay.updateMemory(result.memory);
     this.saveWorld();
