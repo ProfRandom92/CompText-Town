@@ -3,19 +3,22 @@ import { CompTextDebugOverlay } from '../debug/CompTextDebugOverlay';
 import { ReplayTimeline } from '../comptext/replayTimeline';
 import { Npc } from '../npc/Npc';
 import { InteractionSystem } from '../systems/InteractionSystem';
-import { InventorySystem } from '../systems/InventorySystem';
+import { INVENTORY_ITEMS, InventorySystem, ItemId } from '../systems/InventorySystem';
 import { RainSystem } from '../systems/RainSystem';
 import { DialogueBox } from '../ui/DialogueBox';
+import { InventoryPanel } from '../ui/InventoryPanel';
 import { createVillageMap, TILE_SIZE, TILES } from '../world/map';
 
 export class VillageScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: Record<string, Phaser.Input.Keyboard.Key>;
   private actionKey!: Phaser.Input.Keyboard.Key;
+  private dropKey!: Phaser.Input.Keyboard.Key;
   private debugKey!: Phaser.Input.Keyboard.Key;
   private player!: Phaser.Physics.Arcade.Sprite;
   private prompt!: Phaser.GameObjects.Text;
   private hud!: Phaser.GameObjects.Text;
+  private inventoryPanel!: InventoryPanel;
   private dialogue!: DialogueBox;
   private debugOverlay!: CompTextDebugOverlay;
   private rain!: RainSystem;
@@ -24,6 +27,8 @@ export class VillageScene extends Phaser.Scene {
   private readonly inventory = new InventorySystem();
   private readonly interactions = new InteractionSystem();
   private readonly timeline = new ReplayTimeline();
+  private readonly droppedSprites = new Map<string, Phaser.GameObjects.Sprite>();
+  private nextDroppedItemId = 1;
   private mira!: Npc;
 
   constructor() {
@@ -50,7 +55,7 @@ export class VillageScene extends Phaser.Scene {
     this.debugOverlay.updateMemory(this.mira.memory.snapshot());
     this.createControls();
     this.createHud();
-    this.dialogue.showHint('Rain softens Mosscup Pottery. Move with arrows/WASD, press E near warm things.', 3600);
+    this.dialogue.showHint('Rain softens Mosscup Pottery. Gather clay, shape a cup, fire it, then bring it to Mira.', 3600);
   }
 
   update() {
@@ -60,6 +65,7 @@ export class VillageScene extends Phaser.Scene {
     this.rain.update();
     this.pulseLights();
     if (Phaser.Input.Keyboard.JustDown(this.actionKey)) this.interact();
+    if (Phaser.Input.Keyboard.JustDown(this.dropKey)) this.dropHeldItem();
     if (Phaser.Input.Keyboard.JustDown(this.debugKey)) this.debugOverlay.toggle();
   }
 
@@ -164,13 +170,14 @@ export class VillageScene extends Phaser.Scene {
     });
 
     this.interactions.register({ id: 'wheel', label: 'Shape a cup', x: 61, y: 94, radius: 28, onInteract: () => this.craftPottery() });
-    this.interactions.register({ id: 'stall', label: 'Sell pottery', x: 396, y: 210, radius: 30, onInteract: () => this.sellPottery() });
+    this.interactions.register({ id: 'stall', label: 'Sell spare cup', x: 396, y: 210, radius: 30, onInteract: () => this.sellPottery() });
   }
 
   private createControls() {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys('W,A,S,D') as Record<string, Phaser.Input.Keyboard.Key>;
     this.actionKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.dropKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
     this.debugKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
   }
 
@@ -196,8 +203,9 @@ export class VillageScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(100);
+    this.inventoryPanel = new InventoryPanel(this);
     this.add
-      .text(374, 8, 'TAB: comptext', {
+      .text(374, 8, 'E: use  Q: drop  TAB: comptext', {
         fontFamily: 'monospace',
         fontSize: '7px',
         color: '#8aa0ba',
@@ -267,13 +275,64 @@ export class VillageScene extends Phaser.Scene {
   }
 
   private talkToMira() {
-    const result = this.mira.talk(this.inventory.state.clay > 0);
+    const currentMemory = this.mira.memory.snapshot();
+    const canDeliver = currentMemory.questState !== 'cup-delivered' && this.inventory.has('firedCup');
+    const result = canDeliver
+      ? this.deliverCupToMira()
+      : this.mira.talk(this.inventory.has('riverClay'));
     this.dialogue.show(result.lines);
     this.debugOverlay.updateMemory(result.memory);
+    this.refreshHud();
+  }
+
+  private deliverCupToMira() {
+    this.inventory.deliverPottery();
+    this.timeline.add('Delivery', 'Player delivered one fired cup to Mira for her windowsill tea.', 'quest:delivered|fired-cup|mira');
+    return this.mira.receiveDelivery(INVENTORY_ITEMS.firedCup.name);
+  }
+
+  private dropHeldItem() {
+    const itemId = this.inventory.firstDroppableItem();
+    if (!itemId) {
+      this.dialogue.showHint('Your satchel is only holding rain-scent and lint.');
+      return;
+    }
+    if (!this.inventory.remove(itemId)) return;
+    const item = INVENTORY_ITEMS[itemId];
+    const dropX = this.player.x + (this.player.flipX ? -14 : 14);
+    const dropY = this.player.y + 8;
+    const id = `drop-${this.nextDroppedItemId++}`;
+    const sprite = this.add.sprite(dropX, dropY, item.icon).setDepth(dropY + 10);
+    this.droppedSprites.set(id, sprite);
+    this.interactions.register({ id, label: `Pick up ${item.name}`, x: dropX, y: dropY, radius: 18, onInteract: () => this.pickUpDroppedItem(id, itemId) });
+    this.timeline.add('Satchel', `Player set down ${item.name} on the rain-dark path.`, `item:drop|${itemId}`);
+    this.dialogue.showHint(`You set down ${item.name}. It rests gently in the rain.`);
+    this.refreshHud();
+  }
+
+  private pickUpDroppedItem(id: string, itemId: ItemId) {
+    const item = INVENTORY_ITEMS[itemId];
+    this.inventory.add(itemId);
+    this.interactions.unregister(id);
+    this.droppedSprites.get(id)?.destroy();
+    this.droppedSprites.delete(id);
+    this.timeline.add('Satchel', `Player picked ${item.name} back up from the path.`, `item:pickup|${itemId}`);
+    this.dialogue.showHint(`You tuck ${item.name} back into your satchel.`);
+    this.refreshHud();
   }
 
   private refreshHud() {
     const { clay, unfiredPots, firedPots, coins } = this.inventory.state;
     this.hud.setText(`clay ${clay}  wet cups ${unfiredPots}  fired ${firedPots}  coins ${coins}`);
+    this.inventoryPanel.update(this.inventory, this.questLine());
+  }
+
+  private questLine(): string {
+    const memory = this.mira?.memory.snapshot();
+    if (memory?.questState === 'cup-delivered') return 'Mira remembers your cup.';
+    if (this.inventory.has('firedCup')) return 'Quest: bring cup to Mira.';
+    if (this.inventory.has('wetCup')) return 'Quest: fire cup in kiln.';
+    if (this.inventory.has('riverClay', 2)) return 'Quest: shape cup at wheel.';
+    return 'Quest: collect 2 river clay.';
   }
 }

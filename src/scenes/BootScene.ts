@@ -63,6 +63,26 @@ export class BootScene extends Phaser.Scene {
       '........',
       '........',
     ]);
+    this.createTexture('wet-cup', 8, 8, [
+      '..cccc..',
+      '.c7777c.',
+      'c777777c',
+      'c777777c',
+      '.c7777c.',
+      '..cccc..',
+      '........',
+      '........',
+    ]);
+    this.createTexture('fired-cup', 8, 8, [
+      '..dddd..',
+      '.dffffd.',
+      'dffccffd',
+      'dffccffd',
+      '.dffffd.',
+      '..dddd..',
+      '........',
+      '........',
+    ]);
     this.createTexture('kiln', 22, 24, [
       '....6666666666....',
       '..66bbbbbbbb66....',
