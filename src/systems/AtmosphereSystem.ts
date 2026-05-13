@@ -14,6 +14,20 @@ interface SmokeParticle {
   seed: number;
 }
 
+interface AmbientLight {
+  glow: Phaser.GameObjects.Arc;
+  core: Phaser.GameObjects.Arc;
+  seed: number;
+  nightBoost: number;
+}
+
+interface RainRipple {
+  ring: Phaser.GameObjects.Ellipse;
+  originX: number;
+  originY: number;
+  seed: number;
+}
+
 export class AtmosphereSystem {
   private nightVeil!: Phaser.GameObjects.Rectangle;
   private fogBands: Phaser.GameObjects.Rectangle[] = [];
@@ -21,7 +35,11 @@ export class AtmosphereSystem {
   private smoke: SmokeParticle[] = [];
   private wildlife: Phaser.GameObjects.Text[] = [];
   private memoryMotes: Phaser.GameObjects.Arc[] = [];
+  private rainRipples: RainRipple[] = [];
+  private ambientLights: AmbientLight[] = [];
+  private rainVeils: Phaser.GameObjects.Rectangle[] = [];
   private workshopWarmth!: Phaser.GameObjects.Rectangle;
+  private vignette!: Phaser.GameObjects.Graphics;
 
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -29,6 +47,18 @@ export class AtmosphereSystem {
     this.nightVeil = this.scene.add.rectangle(width / 2, height / 2, width, height, 0x10141d, 0.24).setDepth(70);
     this.workshopWarmth = this.scene.add.rectangle(79, 88, 86, 45, 0xf5b56b, 0.08).setDepth(71);
     this.scene.add.circle(79, 91, 58, 0xf5b56b, 0.045).setDepth(69);
+    this.vignette = this.scene.add.graphics().setDepth(79);
+    this.vignette.fillStyle(0x070912, 0.34);
+    this.vignette.fillRect(0, 0, width, 18);
+    this.vignette.fillRect(0, height - 22, width, 22);
+    this.vignette.fillRect(0, 0, 18, height);
+    this.vignette.fillRect(width - 18, 0, 18, height);
+
+    for (let i = 0; i < 3; i += 1) {
+      this.rainVeils.push(
+        this.scene.add.rectangle(width / 2, 28 + i * 62, width, 18, 0x8aa0ba, 0.035).setDepth(73),
+      );
+    }
 
     for (let i = 0; i < 4; i += 1) {
       this.fogBands.push(
@@ -41,6 +71,16 @@ export class AtmosphereSystem {
       glint: this.scene.add.rectangle(sprite.x + 1, sprite.y - 1, 10, 1, 0xf7e7c1, 0.22).setDepth(4),
       seed: index * 1.7,
     }));
+
+    for (let i = 0; i < 18; i += 1) {
+      const puddle = puddleSprites[i % puddleSprites.length];
+      this.rainRipples.push({
+        ring: this.scene.add.ellipse(puddle.x, puddle.y, 4, 2, 0xf7e7c1, 0).setStrokeStyle(1, 0xf7e7c1, 0.18).setDepth(5),
+        originX: puddle.x + Phaser.Math.Between(-12, 12),
+        originY: puddle.y + Phaser.Math.Between(-3, 3),
+        seed: i * 0.31,
+      });
+    }
 
     [
       { x: 46, y: 46 },
@@ -64,6 +104,21 @@ export class AtmosphereSystem {
     }
 
     [
+      { x: 79, y: 91, radius: 64, nightBoost: 0.08 },
+      { x: 145, y: 118, radius: 42, nightBoost: 0.16 },
+      { x: 265, y: 86, radius: 38, nightBoost: 0.14 },
+      { x: 358, y: 73, radius: 48, nightBoost: 0.2 },
+      { x: 404, y: 190, radius: 38, nightBoost: 0.14 },
+    ].forEach((light, index) => {
+      this.ambientLights.push({
+        glow: this.scene.add.circle(light.x, light.y, light.radius, 0xf5b56b, 0.035).setDepth(68),
+        core: this.scene.add.circle(light.x, light.y, Math.max(5, light.radius * 0.12), 0xffd08a, 0.1).setDepth(77),
+        seed: index * 0.7,
+        nightBoost: light.nightBoost,
+      });
+    });
+
+    [
       { x: 172, y: 48, glyph: '·' },
       { x: 302, y: 134, glyph: '⌁' },
       { x: 228, y: 72, glyph: 'ˇ' },
@@ -84,6 +139,11 @@ export class AtmosphereSystem {
       band.setAlpha(state.fogAlpha * (0.42 + index * 0.08));
     });
 
+    this.rainVeils.forEach((veil, index) => {
+      veil.x = 192 + Math.sin(now / 3600 + index) * 18;
+      veil.setAlpha(0.02 + state.rainIntensity * 0.045 + (state.phase === 'night' ? 0.012 : 0));
+    });
+
     this.puddles.forEach(({ sprite, glint, seed }) => {
       const shimmer = Math.sin(now / 280 + seed);
       sprite.setAlpha(0.46 + state.rainIntensity * 0.24 + shimmer * 0.08);
@@ -93,11 +153,27 @@ export class AtmosphereSystem {
       glint.setScale(0.7 + Math.max(0, shimmer) * 0.55, 1);
     });
 
+    this.rainRipples.forEach((ripple, index) => {
+      const wave = (now / 900 + ripple.seed) % 1;
+      ripple.ring.x = ripple.originX + Math.sin(now / 1300 + index) * 1.6;
+      ripple.ring.y = ripple.originY;
+      ripple.ring.setScale(0.5 + wave * 1.7, 0.45 + wave * 1.1);
+      ripple.ring.setAlpha((1 - wave) * state.rainIntensity * 0.16);
+    });
+
     this.smoke.forEach((particle) => {
       const drift = (now / 90 + particle.seed * 28) % 42;
       particle.shape.x = particle.originX + Math.sin(now / 900 + particle.seed) * 7;
       particle.shape.y = particle.originY - drift;
       particle.shape.setAlpha(Math.max(0, 0.17 - drift / 280));
+    });
+
+    this.ambientLights.forEach((light, index) => {
+      const flicker = Math.sin(now / 280 + light.seed) * 0.018 + Math.sin(now / 97 + index) * 0.009;
+      const phaseBoost = state.phase === 'night' ? light.nightBoost : state.phase === 'dusk' ? light.nightBoost * 0.65 : 0;
+      light.glow.setAlpha(0.035 + phaseBoost + flicker);
+      light.core.setAlpha(0.07 + phaseBoost * 0.7 + Math.max(0, flicker));
+      light.glow.setScale(1 + Math.sin(now / 700 + index) * 0.035);
     });
 
     this.memoryMotes.forEach((mote, index) => {
