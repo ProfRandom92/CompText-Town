@@ -1,117 +1,377 @@
-# CompText Town
+# 🌧️ CompText Town
 
-**CompText Town** is a cozy browser-based pixel-art vertical slice where a rainy pottery village quietly doubles as an interactive showcase for conceptual **CompTextv7 semantic compression** technology.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ProfRandom92/CompText-Town/main/.github/assets/comptext-town-banner.png" alt="CompText Town Banner" width="100%" />
+</p>
 
-The intended feeling is: **Studio Ghibli meets semantic AI observability**.
+<p align="center">
+  <strong>A village that remembers.</strong><br/>
+  Cozy pixel-art atmosphere meets semantic memory systems.
+</p>
 
-## Current vertical slice
+<p align="center">
+  <img src="https://img.shields.io/badge/Phaser-2D%20Game-blue" />
+  <img src="https://img.shields.io/badge/TypeScript-Strict-blue" />
+  <img src="https://img.shields.io/badge/Vite-Browser%20First-purple" />
+  <img src="https://img.shields.io/badge/Remotion-Cinematic%20Trailer-orange" />
+  <img src="https://img.shields.io/badge/CompTextv7-Semantic%20Memory-green" />
+</p>
 
-- Phaser.js + TypeScript + Vite browser game setup.
-- A small rainy evening village with a pottery workshop, clay bank, kiln, market stall, lantern warmth, rain, and kiln glow.
-- Controllable pixel-art player using Arrow keys or WASD.
-- Basic pottery loop:
-  1. gather clay,
-  2. craft an unfired cup at the workshop wheel,
-  3. fire the cup in the kiln,
-  4. sell fired pottery at the stall.
-- Mira, the first villager NPC, with relationship growth and compressed conversation memory.
-- Optional CompText debug overlay showing token reduction, semantic retention, drift, memory state, compressed context, and replay events.
-- Export-ready Remotion trailer composition for a cinematic rainy pottery-village reveal.
-- Placeholder pixel textures generated at boot for a cloud-friendly first version without a heavy asset pipeline.
+---
 
-## Controls
+# ✨ What is CompText Town?
 
-| Input | Action |
-| --- | --- |
-| Arrow keys / WASD | Walk around town |
-| E | Interact with nearby NPCs and workshop objects |
-| Tab | Toggle the hidden CompTextv7 debug pane |
+**CompText Town** is an atmospheric browser-based pixel-art experience inspired by:
 
-## Project structure
+- Pokémon
+- Stardew Valley
+- Eastward
+- Studio Ghibli
+- modern indie pixel-art storytelling
+
+At first glance, it looks like a small rainy pottery village.
+
+Underneath, it quietly functions as an experimental showcase for:
+
+- semantic memory systems
+- compressed NPC memories
+- replayable emotional moments
+- token reduction concepts
+- persistent AI-driven village state
+
+The project explores a simple question:
+
+> **What if a game world could remember emotionally instead of mechanically?**
+
+---
+
+# 🎮 Current Features
+
+## Cozy Pixel-Art Village
+
+- Rainy handcrafted pottery town
+- Warm lantern lighting
+- Kiln glow and fog
+- Animated puddles and reflections
+- Day/night atmosphere
+- Workshop interiors with ceramic clutter
+- Ambient smoke and weather systems
+
+---
+
+## Pottery Gameplay Loop
+
+Players can:
+
+1. Gather clay
+2. Craft pottery
+3. Fire ceramics in the kiln
+4. Deliver pottery to villagers
+5. Build emotional relationships
+
+---
+
+## Persistent Villager Memory
+
+NPCs can:
+
+- remember gifts
+- remember weather moments
+- reference old conversations
+- react differently over time
+- maintain relationship warmth
+- replay emotional memory fragments
+
+---
+
+## Hidden CompText Systems
+
+The semantic layer stays subtle and immersive.
+
+Optional overlays show:
+
+- token reduction
+- semantic retention
+- compressed memory state
+- replay events
+- relationship warmth
+- memory snapshots
+- semantic drift
+
+---
+
+## Cinematic Trailer Pipeline
+
+Includes:
+
+- Remotion trailer architecture
+- cinematic memory reveal scenes
+- replay visualizations
+- logo reveal system
+- export-ready compositions
+
+---
+
+# 🖼️ Vision
+
+CompText Town is intentionally **not** a corporate dashboard wrapped in a game.
+
+The goal is:
+
+```text
+cozy handcrafted world
++
+persistent emotional memory
++
+hidden semantic AI systems
+```
+
+The atmosphere should feel:
+
+- warm
+- melancholic
+- nostalgic
+- magical
+- intimate
+- emotionally reactive
+
+---
+
+# 🕹️ Controls
+
+| Key | Action |
+|------|--------|
+| WASD / Arrow Keys | Move |
+| E | Interact |
+| TAB | Toggle hidden CompText overlay |
+| Q | Drop item |
+
+---
+
+# 🏗️ Tech Stack
+
+## Core
+
+- Phaser.js
+- TypeScript
+- Vite
+
+## Cinematics
+
+- Remotion
+- React
+
+## Workflow
+
+- GitHub PR workflow
+- cloud-first iteration
+- AI-assisted development
+
+---
+
+# 📂 Project Structure
 
 ```text
 src/
-  assets/     Pixel palette and placeholder asset helpers
-  comptext/   Semantic compression, retention, drift, replay timeline
-  debug/      Optional CompText observability overlays
-  npc/        NPC actors, dialogue, relationship memory
-  scenes/     Phaser scenes
-  systems/    Inventory, interaction, rain and game systems
-  trailer/    Remotion trailer compositions, reusable cinematic components, and scene system
-  ui/         Pixel-friendly dialogue and HUD UI
-  world/      Village tilemap and world markers
+├── assets/        palettes, placeholder textures
+├── comptext/      semantic memory + replay systems
+├── debug/         hidden observability overlays
+├── npc/           villagers + emotional memory
+├── scenes/        Phaser scenes
+├── systems/       weather, inventory, interaction
+├── trailer/       Remotion cinematic pipeline
+├── ui/            dialogue + HUD
+└── world/         village layout + tile logic
 ```
 
-## Development
+---
+
+# 🚀 Development
+
+## Run locally
 
 ```bash
+git clone https://github.com/ProfRandom92/CompText-Town.git
+cd CompText-Town
+
 npm install
 npm run dev
 ```
 
-Build for production:
+Open:
 
-```bash
-npm run build
+```text
+http://localhost:5173
 ```
 
-## Remotion trailer
+---
 
-The cinematic trailer lives in `src/trailer` and is structured as modular React + TypeScript scenes. It aims for **cozy atmospheric pixel-art** rather than a corporate product walkthrough: warm lanterns, rainy cobblestones, glowing pottery, fog, replay echoes, and subtle semantic memory magic.
+# 🎬 Trailer Pipeline
+
+## Open Remotion Studio
 
 ```bash
-# Open the Remotion Studio timeline
 npm run trailer:studio
+```
 
-# Validate available Remotion compositions
-npm run trailer:compositions
+## Render cinematic trailer
 
-# Render the export-ready MP4
+```bash
 npm run trailer:render
 ```
 
-Composition ID: `CompTextTownTrailer`
+Composition ID:
 
-Soundtrack timing hooks are defined alongside the trailer constants so music, rain beds, kiln swells, replay granules, and logo chords can be synced during final audio production.
+```text
+CompTextTownTrailer
+```
 
-## Design principles
+---
 
-- Keep the first version small, playable, and atmospheric.
-- Hide the AI infrastructure inside warm, diegetic village moments.
-- Prefer emotional lighting, rain, kiln glow, and handmade texture over dashboard density.
-- Make semantic compression legible through optional debug magic, not corporate UI.
+# 🧠 CompTextv7 Concepts
 
-## Roadmap
+CompText Town experiments with ideas around:
 
-### Milestone 1 — Playable vertical slice
+- semantic memory compression
+- replayable memory fragments
+- emotional retention
+- persistent NPC state
+- semantic drift
+- compressed dialogue history
 
-- [x] Project architecture and clean folder structure.
-- [x] Phaser + TypeScript + Vite setup.
-- [x] Initial tilemap-style village layout.
-- [x] Controllable player.
-- [x] Pottery workshop scene area.
-- [x] One NPC with memory compression.
-- [x] Basic dialogue.
-- [x] Placeholder pixel assets.
-- [x] CompText debug overlay.
+The goal is not realism.
 
-### Milestone 2 — More village soul
+The goal is:
 
-- Add two more memorable NPCs: a kiln keeper and a shy courier.
-- Add day/evening beat transitions and stronger rain ambience hooks.
-- Replace generated placeholders with hand-authored spritesheets and tiles.
-- Add lightweight save/load for inventory, relationships, and compressed NPC memories.
+> emotional continuity.
 
-### Milestone 3 — Deeper CompText showcase
+---
 
-- Expand semantic retention scoring into per-topic memory heat.
-- Add replay timeline inspection from an in-world ceramic ledger.
-- Compare raw dialogue history with compressed memory shards.
-- Add drift warnings as subtle lantern flicker and kiln-glass artifacts.
+# 🌧️ Design Principles
 
-### Milestone 4 — Polished demo
+## Atmosphere First
 
-- Add music and ambient audio implementation.
-- Add title screen and credits.
-- Improve accessibility options for text size and debug overlay visibility.
-- Package for static hosting.
+Rain.
+Lanterns.
+Kiln warmth.
+Fog.
+Soft reflections.
+Slow emotional pacing.
+
+---
+
+## Hidden Infrastructure
+
+The AI systems should feel:
+
+```text
+magical
+not technical
+```
+
+No sterile dashboards.
+No enterprise UI overload.
+
+---
+
+## Small But Deep
+
+The project intentionally avoids:
+
+- MMO systems
+- giant open worlds
+- combat-heavy gameplay
+- feature bloat
+
+Instead:
+
+- tiny emotional interactions
+- memory callbacks
+- handcrafted spaces
+- persistent atmosphere
+
+---
+
+# 🛣️ Roadmap
+
+# Phase 1 — Vertical Slice ✅
+
+- [x] Phaser architecture
+- [x] Rainy village
+- [x] Pottery gameplay loop
+- [x] NPC interactions
+- [x] Inventory system
+- [x] Save/load persistence
+- [x] CompText overlays
+- [x] Replay systems
+- [x] Remotion trailer pipeline
+
+---
+
+# Phase 2 — Art Direction & Polish 🚧
+
+- [ ] Replace placeholder sprites
+- [ ] Handcrafted tilesets
+- [ ] Improved character animation
+- [ ] Better lighting composition
+- [ ] Premium indie atmosphere pass
+- [ ] Stronger cinematic framing
+- [ ] Audio implementation
+- [ ] Better UI consistency
+
+---
+
+# Phase 3 — Living Memory Village 🌙
+
+- [ ] Emotional memory echoes
+- [ ] Dynamic villager routines
+- [ ] Weather-dependent memories
+- [ ] Relationship evolution
+- [ ] Semantic memory clustering
+- [ ] In-world replay journal
+- [ ] Memory artifacts & lantern drift
+
+---
+
+# Phase 4 — Showcase Release ✨
+
+- [ ] Fully polished trailer
+- [ ] Web deployment
+- [ ] Steam-style landing page
+- [ ] Accessibility improvements
+- [ ] Soundtrack integration
+- [ ] Public playable demo
+
+---
+
+# 🎨 Inspirations
+
+- Eastward
+- Moonlighter
+- Stardew Valley
+- Children of Morta
+- Hyper Light Drifter lighting
+- Studio Ghibli atmosphere
+
+---
+
+# 💡 Philosophy
+
+CompText Town is an experiment in:
+
+```text
+emotional AI interfaces
+```
+
+Instead of showing semantic systems as dashboards and metrics,
+the project asks:
+
+> Can semantic memory feel warm, nostalgic and human?
+
+---
+
+<p align="center">
+  🌧️🔥<br/>
+  <strong>CompText Town</strong><br/>
+  <em>A village that remembers.</em>
+</p>
